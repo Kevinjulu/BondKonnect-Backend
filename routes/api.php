@@ -53,6 +53,9 @@ Route::group(
         Route::get('get-admin-users', [AuthController::class, 'getAdminUsers']);
         Route::get('get-user-intermediaries', [AuthController::class, 'getUserIntermediaries']);
         Route::get('concurrent-users', [AuthController::class, 'getConcurrentUsers']);
+        Route::post('update-profile', [AuthController::class, 'updateProfile']);
+        Route::get('active-sessions', [AuthController::class, 'getActiveSessions']);
+        Route::post('revoke-session', [AuthController::class, 'revokeSession']);
     }
   );
 

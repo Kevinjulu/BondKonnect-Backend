@@ -2899,4 +2899,161 @@ class AuthController extends Controller
              // Fallback to request IP
              return $request->ip();
          }
+
+    public function updateProfile(Request $request)
+    {
+        $request->validate([
+            'first_name' => 'required|string',
+            'last_name' => 'nullable|string',
+        ]);
+
+        $token = $request->cookie('k-o-t');
+        $ipAddress = $request->ip();
+
+        if (!$token) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $validation = $this->validateSecureToken($token, $ipAddress);
+        if (!$validation['valid']) {
+            return response()->json(['success' => false, 'message' => $validation['reason']], 401);
+        }
+
+        $userId = $validation['user_id'];
+
+        try {
+            $this->bk_db->table('portaluserlogoninfo')
+                ->where('Id', $userId)
+                ->update([
+                    'FirstName' => $request->first_name,
+                    'OtherNames' => $request->last_name,
+                    'dola' => Carbon::now()
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile updated successfully'
+            ]);
+
+        } catch (\Throwable $th) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating profile',
+                'error' => $th->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getActiveSessions(Request $request)
+    {
+        $token = $request->cookie('k-o-t');
+        $ipAddress = $request->ip();
+
+        if (!$token) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $validation = $this->validateSecureToken($token, $ipAddress);
+        if (!$validation['valid']) {
+            return response()->json(['success' => false, 'message' => $validation['reason']], 401);
+        }
+
+        $userId = $validation['user_id'];
+
+        try {
+            $sessions = $this->bk_db->table('portaluserlogintoken')
+                ->where('User', $userId)
+                ->where('IsActive', true)
+                ->where('ExpiresAt', '>', Carbon::now())
+                ->select('Id', 'LastLogOn', 'IpAddress', 'UserAgent', 'Token')
+                ->orderBy('LastLogOn', 'desc')
+                ->get();
+
+            $formattedSessions = $sessions->map(function ($session) use ($token) {
+                return [
+                    'id' => $session->Id,
+                    'is_current' => $session->Token === $token,
+                    'ip_address' => $session->IpAddress,
+                    'last_active' => Carbon::parse($session->LastLogOn)->diffForHumans(),
+                    'device' => $this->parseUserAgent($session->UserAgent)
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $formattedSessions
+            ]);
+
+        } catch (\Throwable $th) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching sessions',
+                'error' => $th->getMessage()
+            ], 500);
+        }
+    }
+
+    public function revokeSession(Request $request)
+    {
+        $request->validate([
+            'session_id' => 'required|integer'
+        ]);
+
+        $token = $request->cookie('k-o-t');
+        $ipAddress = $request->ip();
+
+        if (!$token) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $validation = $this->validateSecureToken($token, $ipAddress);
+        if (!$validation['valid']) {
+            return response()->json(['success' => false, 'message' => $validation['reason']], 401);
+        }
+
+        $userId = $validation['user_id'];
+
+        try {
+            // Ensure the session belongs to the user
+            $updated = $this->bk_db->table('portaluserlogintoken')
+                ->where('Id', $request->session_id)
+                ->where('User', $userId)
+                ->update(['IsActive' => false]);
+
+            if ($updated) {
+                return response()->json(['success' => true, 'message' => 'Session revoked successfully']);
+            } else {
+                return response()->json(['success' => false, 'message' => 'Session not found or already inactive'], 404);
+            }
+
+        } catch (\Throwable $th) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error revoking session',
+                'error' => $th->getMessage()
+            ], 500);
+        }
+    }
+
+    private function parseUserAgent($userAgent)
+    {
+        if (!$userAgent) return 'Unknown Device';
+        
+        $browser = 'Unknown Browser';
+        if (preg_match('/Firefox/i', $userAgent)) $browser = 'Firefox';
+        elseif (preg_match('/Chrome/i', $userAgent)) $browser = 'Chrome';
+        elseif (preg_match('/Safari/i', $userAgent)) $browser = 'Safari';
+        elseif (preg_match('/Edge/i', $userAgent)) $browser = 'Edge';
+        elseif (preg_match('/Opera/i', $userAgent)) $browser = 'Opera';
+
+        $os = 'Unknown OS';
+        if (preg_match('/Windows/i', $userAgent)) $os = 'Windows';
+        elseif (preg_match('/Mac/i', $userAgent)) $os = 'Mac OS';
+        elseif (preg_match('/Linux/i', $userAgent)) $os = 'Linux';
+        elseif (preg_match('/Android/i', $userAgent)) $os = 'Android';
+        elseif (preg_match('/iPhone/i', $userAgent)) $os = 'iPhone';
+        elseif (preg_match('/iPad/i', $userAgent)) $os = 'iPad';
+
+        return "$browser on $os";
+    }
 }
