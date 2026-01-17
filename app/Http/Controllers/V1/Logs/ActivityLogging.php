@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\V1\Logs;
 
-use App\Http\Controllers\Controller;
-use App\Http\Controllers\V1\Defaults\StandardFunctions;
-use App\Http\Controllers\V1\Notifications\NotificationController;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\V1\Defaults\StandardFunctions;
+use App\Http\Controllers\V1\Notifications\NotificationController;
 
 class ActivityLogging extends Controller
 {
@@ -17,58 +17,57 @@ class ActivityLogging extends Controller
     const ACTIVITIES = [
         'AUTH' => [
             'code' => 'authentication',
-            'description' => 'User authentication activities',
+            'description' => 'User authentication activities'
         ],
         'REPORTS' => [
             'code' => 'reporting',
-            'description' => 'Report related activites',
+            'description' => 'Report related activites'
         ],
         'DATA' => [
             'code' => 'data_access',
-            'description' => 'Data access and retrieval',
+            'description' => 'Data access and retrieval'
         ],
 
         'MODIFY' => [
             'code' => 'modification',
-            'description' => 'Data modification activities',
+            'description' => 'Data modification activities'
         ],
         'EXPORT' => [
             'code' => 'export',
-            'description' => 'Data export operations',
+            'description' => 'Data export operations'
         ],
         'UPLOAD' => [
             'code' => 'upload',
-            'description' => 'File upload activities',
+            'description' => 'File upload activities'
         ],
         'APPROVE' => [
             'code' => 'approval',
-            'description' => 'Approval workflow activities',
-        ],
+            'description' => 'Approval workflow activities'
+        ]
     ];
 
     // Severity levels with descriptions
     const SEVERITIES = [
         'INFO' => [
             'level' => 'info',
-            'description' => 'Normal operation information',
+            'description' => 'Normal operation information'
         ],
         'WARNING' => [
             'level' => 'warning',
-            'description' => 'Warning conditions',
+            'description' => 'Warning conditions'
         ],
         'ERROR' => [
             'level' => 'error',
-            'description' => 'Error conditions',
+            'description' => 'Error conditions'
         ],
         'CRITICAL' => [
             'level' => 'critical',
-            'description' => 'Critical conditions',
-        ],
+            'description' => 'Critical conditions'
+        ]
     ];
 
     // Rate limiting configuration
     private const RATE_LIMIT = 1000; // max logs per minute
-
     private const CACHE_TTL = 60; // 1 minute
 
     private function validateActivityType($type): bool
@@ -86,7 +85,6 @@ class ActivityLogging extends Controller
         if (is_array($input)) {
             return array_map([$this, 'sanitizeInput'], $input);
         }
-
         return is_string($input) ? htmlspecialchars($input, ENT_QUOTES | ENT_HTML5, 'UTF-8') : $input;
     }
 
@@ -97,13 +95,11 @@ class ActivityLogging extends Controller
 
         if ($count >= self::RATE_LIMIT) {
             Log::warning("Rate limit exceeded for user {$user_id}");
-
             return false;
         }
 
         Cache::add($key, 1, self::CACHE_TTL);
         Cache::increment($key);
-
         return true;
     }
 
@@ -115,7 +111,7 @@ class ActivityLogging extends Controller
                 ->where('Id', $log_id)
                 ->first();
 
-            if (! $log) {
+            if (!$log) {
                 return false;
             }
 
@@ -125,14 +121,14 @@ class ActivityLogging extends Controller
                 ->where('IsActive', true)
                 ->get();
 
-            $notifications = new NotificationController;
+            $notifications = new NotificationController();
 
             foreach ($admins as $admin) {
                 // Create notification message
                 $message = "Critical Activity Alert: {$log->Action} by User ID {$log->UserId}";
 
                 // Create notification link - points to activity logs view
-                $link = '/admin/activity-logs?log_id='.$log_id;
+                $link = "/admin/activity-logs?log_id=" . $log_id;
 
                 // Send notification to each admin
                 $notifications->sendNotification(
@@ -147,8 +143,7 @@ class ActivityLogging extends Controller
             return true;
 
         } catch (\Throwable $th) {
-            Log::error('Error notifying administrators: '.$th->getMessage());
-
+            Log::error('Error notifying administrators: ' . $th->getMessage());
             return false;
         }
     }
@@ -161,75 +156,77 @@ class ActivityLogging extends Controller
                 'user_id' => $user_id,
                 'activity_type' => $activity_type,
                 'action' => $action,
-                'severity' => $severity,
+                'severity' => $severity
             ], [
                 'user_id' => 'required|integer',
                 'activity_type' => 'required|string',
                 'action' => 'required|string|max:255',
-                'severity' => 'required|string',
+                'severity' => 'required|string'
             ]);
 
             if ($validator->fails()) {
                 return [
                     'success' => false,
                     'message' => 'Invalid input parameters',
-                    'data' => $validator->errors(),
+                    'data' => $validator->errors()
                 ];
             }
 
             // Validate activity type and severity
-            if (! $this->validateActivityType($activity_type) || ! $this->validateSeverity($severity)) {
+            if (!$this->validateActivityType($activity_type) || !$this->validateSeverity($severity)) {
                 return [
                     'success' => false,
                     'message' => 'Invalid activity type or severity level',
-                    'data' => null,
+                    'data' => null
                 ];
             }
             if ($user_id !== 0) {
                 // $user_id = null;
 
-                // Check rate limiting
-                if (! $this->checkRateLimit($user_id)) {
-                    return [
-                        'success' => false,
-                        'message' => 'Rate limit exceeded',
-                        'data' => null,
-                    ];
-                }
-
-                // Get user details with caching
-                $user = Cache::remember("user_{$user_id}", 300, function () use ($user_id) {
-                    return $this->bk_db->table('portaluserlogoninfo')
-                        ->where('Id', $user_id)
-                        ->first();
-                });
-
-                if (! $user) {
-                    return [
-                        'success' => false,
-                        'message' => 'User not found',
-                        'data' => null,
-                    ];
-                }
-
-                $role = $this->bk_db->table('userroles')
-                    ->where('User', $user_id)
-                    ->first();
-
-                $role_id = $role->Role;
-                Log::info('Role selected');
+            // Check rate limiting
+            if (!$this->checkRateLimit($user_id)) {
+                return [
+                    'success' => false,
+                    'message' => 'Rate limit exceeded',
+                    'data' => null
+                ];
             }
-            // Sanitize inputs
-            $action = $this->sanitizeInput($action);
-            $details = $this->sanitizeInput($details);
+
+
+
+            // Get user details with caching
+            $user = Cache::remember("user_{$user_id}", 300, function () use ($user_id) {
+                return $this->bk_db->table('portaluserlogoninfo')
+                    ->where('Id', $user_id)
+                    ->first();
+            });
+
+            if (!$user) {
+                return [
+                    'success' => false,
+                    'message' => 'User not found',
+                    'data' => null
+                ];
+            }
+
+            $role = $this->bk_db->table('userroles')
+                            ->where('User', $user_id)
+                            ->first();
+
+            $role_id = $role->Role;
+            Log::info('Role selected');
+        }
+                    // Sanitize inputs
+                    $action = $this->sanitizeInput($action);
+                    $details = $this->sanitizeInput($details);
 
             // Begin transaction
             $this->bk_db->beginTransaction();
 
             try {
-                if ($severity === 'info') {
+                if($severity === 'info'){
                     $statuscode = 200;
-                } else {
+                }else{
                     $statuscode = 500;
                 }
                 // Insert log entry
@@ -250,7 +247,7 @@ class ActivityLogging extends Controller
                     'created_on' => Carbon::now(),
                     'RequestMethod' => request()->method(),
                     'RequestUrl' => request()->fullUrl(),
-                    'RequestHeaders' => json_encode(request()->headers->all()),
+                    'RequestHeaders' => json_encode(request()->headers->all())
                 ]);
 
                 // Log critical events
@@ -259,7 +256,7 @@ class ActivityLogging extends Controller
                         'log_id' => $log_id,
                         'user_id' => $user_id,
                         'email' => $user->Email,
-                        'details' => $details,
+                        'details' => $details
                     ]);
 
                     // Notify administrators
@@ -271,7 +268,7 @@ class ActivityLogging extends Controller
                 return [
                     'success' => true,
                     'message' => 'Activity logged successfully',
-                    'data' => $log_id,
+                    'data' => $log_id
                 ];
 
             } catch (\Exception $e) {
@@ -280,12 +277,11 @@ class ActivityLogging extends Controller
             }
 
         } catch (\Throwable $th) {
-            Log::error('Error logging user activity: '.$th->getMessage());
-
+            Log::error('Error logging user activity: ' . $th->getMessage());
             return [
                 'success' => false,
                 'message' => 'Error logging activity',
-                'data' => $th->getMessage(),
+                'data' => $th->getMessage()
             ];
         }
     }
@@ -293,29 +289,31 @@ class ActivityLogging extends Controller
     public function logReportsActivity(Request $request)
     {
 
+
         try {
             $request->validate([
                 'user_email' => 'required|string',
                 'action' => 'required|string|max:255',
                 'details' => 'required|string',
-                'severity' => 'required|string',
+                'severity' => 'required|string'
 
             ]);
 
-            $severity = $request->severity;
+
+            $severity =  $request->severity;
             $action = $request->action;
             $details = [
-                'email' => $request->user_email,
+                'email' =>  $request->user_email,
                 'narration' => $request->details,
             ];
             Log::info('Email, '.$request->user_email);
             Log::info('Severity, '.$request->details);
 
-            $standardfns = new StandardFunctions;
+            $standardfns = new StandardFunctions();
             $user = $standardfns->get_user_id($request->user_email);
             $user_id = $user->Id;
             // Log::info('User id' . $user_id);
-            if (! $user_id) {
+            if (!$user_id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User does not exist!',
@@ -325,18 +323,18 @@ class ActivityLogging extends Controller
             // Log::info('User id' . $user_id);
 
             $role_id = $this->bk_db->table('userroles')
-                ->where('User', $user_id)
-                ->value('Role');
+                            ->where('User', $user_id)
+                            ->value('Role');
 
-            Log::info('Role selected: '.$role_id);
+            Log::info('Role selected: ' . $role_id);
             // Log::info('Role selected');
 
             // Check rate limiting
-            if (! $this->checkRateLimit($user_id)) {
+            if (!$this->checkRateLimit($user_id)) {
                 return [
                     'success' => false,
                     'message' => 'Rate limit exceeded',
-                    'data' => null,
+                    'data' => null
                 ];
             }
 
@@ -351,11 +349,11 @@ class ActivityLogging extends Controller
                     ->first();
             });
 
-            if (! $user) {
+            if (!$user) {
                 return [
                     'success' => false,
                     'message' => 'User not found',
-                    'data' => null,
+                    'data' => null
                 ];
             }
 
@@ -381,7 +379,7 @@ class ActivityLogging extends Controller
                     'created_on' => Carbon::now(),
                     'RequestMethod' => request()->method(),
                     'RequestUrl' => request()->fullUrl(),
-                    'RequestHeaders' => json_encode(request()->headers->all()),
+                    'RequestHeaders' => json_encode(request()->headers->all())
                 ]);
 
                 // Log critical events
@@ -390,7 +388,7 @@ class ActivityLogging extends Controller
                         'log_id' => $log_id,
                         'user_id' => $user_id,
                         'email' => $user->Email,
-                        'details' => $details,
+                        'details' => $details
                     ]);
 
                     // Notify administrators
@@ -402,7 +400,7 @@ class ActivityLogging extends Controller
                 return [
                     'success' => true,
                     'message' => 'Activity logged successfully',
-                    'data' => $log_id,
+                    'data' => $log_id
                 ];
 
             } catch (\Exception $e) {
@@ -411,8 +409,7 @@ class ActivityLogging extends Controller
             }
 
         } catch (\Throwable $th) {
-            Log::error('Error logging Report activity: '.$th->getMessage());
-
+            Log::error('Error logging Report activity: ' . $th->getMessage());
             return [
                 'success' => false,
                 'message' => 'Error logging report activity',
@@ -422,6 +419,7 @@ class ActivityLogging extends Controller
             ];
         }
     }
+
 
     public function getActivityLogs($filters = [])
     {
@@ -452,16 +450,15 @@ class ActivityLogging extends Controller
             return [
                 'success' => true,
                 'message' => 'Activity logs retrieved successfully',
-                'data' => $results,
+                'data' => $results
             ];
 
         } catch (\Throwable $th) {
-            Log::error('Error retrieving activity logs: '.$th->getMessage());
-
+            Log::error('Error retrieving activity logs: ' . $th->getMessage());
             return [
                 'success' => false,
                 'message' => 'Error retrieving activity logs',
-                'data' => $th->getMessage(),
+                'data' => $th->getMessage()
             ];
         }
     }
@@ -482,16 +479,15 @@ class ActivityLogging extends Controller
             return [
                 'success' => true,
                 'message' => 'User statistics retrieved successfully',
-                'data' => $stats,
+                'data' => $stats
             ];
 
         } catch (\Throwable $th) {
-            Log::error('Error retrieving user statistics: '.$th->getMessage());
-
+            Log::error('Error retrieving user statistics: ' . $th->getMessage());
             return [
                 'success' => false,
                 'message' => 'Error retrieving user statistics',
-                'data' => $th->getMessage(),
+                'data' => $th->getMessage()
             ];
         }
     }
@@ -522,17 +518,16 @@ class ActivityLogging extends Controller
                 'message' => 'Old logs archived and cleaned successfully',
                 'data' => [
                     'records_archived' => $old_logs->count(),
-                    'records_deleted' => $deleted,
-                ],
+                    'records_deleted' => $deleted
+                ]
             ];
 
         } catch (\Throwable $th) {
-            Log::error('Error cleaning old logs: '.$th->getMessage());
-
+            Log::error('Error cleaning old logs: ' . $th->getMessage());
             return [
                 'success' => false,
                 'message' => 'Error cleaning old logs',
-                'data' => $th->getMessage(),
+                'data' => $th->getMessage()
             ];
         }
     }
@@ -551,12 +546,11 @@ class ActivityLogging extends Controller
                     throw new \InvalidArgumentException('Unsupported export format');
             }
         } catch (\Throwable $th) {
-            Log::error('Error exporting logs: '.$th->getMessage());
-
+            Log::error('Error exporting logs: ' . $th->getMessage());
             return [
                 'success' => false,
                 'message' => 'Error exporting logs',
-                'data' => $th->getMessage(),
+                'data' => $th->getMessage()
             ];
         }
     }
@@ -564,20 +558,20 @@ class ActivityLogging extends Controller
     private function exportToCSV($logs)
     {
         try {
-            $filename = 'activity_logs_'.date('Y-m-d_His').'.csv';
+            $filename = 'activity_logs_' . date('Y-m-d_His') . '.csv';
             $headers = [
                 'Content-Type' => 'text/csv',
                 'Content-Disposition' => "attachment; filename=\"$filename\"",
                 'Cache-Control' => 'no-cache, no-store, must-revalidate',
                 'Pragma' => 'no-cache',
-                'Expires' => false,
+                'Expires' => false
             ];
 
             // Create temp file handle
             $handle = fopen('php://temp', 'r+');
 
             // Add UTF-8 BOM for Excel compatibility
-            fwrite($handle, "\xEF\xBB\xBF");
+            fputs($handle, "\xEF\xBB\xBF");
 
             // Write headers
             fputcsv($handle, [
@@ -590,7 +584,7 @@ class ActivityLogging extends Controller
                 'Created On',
                 'Request Method',
                 'Request URL',
-                'Request Headers',
+                'Request Headers'
             ]);
 
             // Write data rows with updated field names
@@ -606,7 +600,7 @@ class ActivityLogging extends Controller
                         $log->created_on,
                         $log->RequestMethod,
                         $log->RequestUrl,
-                        $log->RequestHeaders,
+                        $log->RequestHeaders
                     ]);
                 }
             }
@@ -624,17 +618,16 @@ class ActivityLogging extends Controller
                 'data' => [
                     'content' => $content,
                     'filename' => $filename,
-                    'headers' => $headers,
-                ],
+                    'headers' => $headers
+                ]
             ];
 
         } catch (\Throwable $th) {
-            Log::error('Error exporting CSV: '.$th->getMessage());
-
+            Log::error('Error exporting CSV: ' . $th->getMessage());
             return [
                 'success' => false,
                 'message' => 'Error exporting to CSV',
-                'data' => $th->getMessage(),
+                'data' => $th->getMessage()
             ];
         }
     }
@@ -642,13 +635,13 @@ class ActivityLogging extends Controller
     private function exportToJSON($logs)
     {
         try {
-            $filename = 'activity_logs_'.date('Y-m-d_His').'.json';
+            $filename = 'activity_logs_' . date('Y-m-d_His') . '.json';
             $headers = [
                 'Content-Type' => 'application/json',
                 'Content-Disposition' => "attachment; filename=\"$filename\"",
                 'Cache-Control' => 'no-cache, no-store, must-revalidate',
                 'Pragma' => 'no-cache',
-                'Expires' => false,
+                'Expires' => false
             ];
 
             // Transform logs data with updated field names
@@ -656,7 +649,7 @@ class ActivityLogging extends Controller
                 return [
                     'id' => $log->Id,
                     'user' => [
-                        'id' => $log->UserId,
+                        'id' => $log->UserId
                     ],
                     'activity' => [
                         'type' => $log->ActivityType,
@@ -664,18 +657,18 @@ class ActivityLogging extends Controller
                         'details' => is_string($log->Details) ?
                             json_decode($log->Details, true) ?? $log->Details :
                             $log->Details,
-                        'severity' => $log->Severity,
+                        'severity' => $log->Severity
                     ],
                     'request' => [
                         'method' => $log->RequestMethod,
                         'url' => $log->RequestUrl,
-                        'headers' => json_decode($log->RequestHeaders, true),
+                        'headers' => json_decode($log->RequestHeaders, true)
                     ],
                     'timestamp' => $log->created_on,
                     'metadata' => [
                         'exported_at' => now()->toIso8601String(),
-                        'environment' => config('app.env'),
-                    ],
+                        'environment' => config('app.env')
+                    ]
                 ];
             });
 
@@ -683,11 +676,11 @@ class ActivityLogging extends Controller
             $content = json_encode([
                 'total_records' => $logs->count(),
                 'exported_at' => now()->toIso8601String(),
-                'logs' => $exportData,
+                'logs' => $exportData
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new \Exception('JSON encoding error: '.json_last_error_msg());
+                throw new \Exception('JSON encoding error: ' . json_last_error_msg());
             }
 
             return [
@@ -696,18 +689,18 @@ class ActivityLogging extends Controller
                 'data' => [
                     'content' => $content,
                     'filename' => $filename,
-                    'headers' => $headers,
-                ],
+                    'headers' => $headers
+                ]
             ];
 
         } catch (\Throwable $th) {
-            Log::error('Error exporting JSON: '.$th->getMessage());
-
+            Log::error('Error exporting JSON: ' . $th->getMessage());
             return [
                 'success' => false,
                 'message' => 'Error exporting to JSON',
-                'data' => $th->getMessage(),
+                'data' => $th->getMessage()
             ];
         }
     }
+
 }

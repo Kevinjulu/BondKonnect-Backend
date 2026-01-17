@@ -54,23 +54,29 @@ The BondKonnect API is a robust backend service built with Laravel that powers t
 ## Technical Stack
 
 ### Core Technologies
-- Laravel Framework 11.x
-- PHP 8.2+
-- MySQL 8.0+
+- Laravel Framework 10.x
+- PHP 8.1+
+- PostgreSQL 14+
 - Redis 7+
 
 ### Authentication & Security
+- JWT Authentication
 - Laravel Sanctum for API tokens
+- OAuth2 implementation
 - CSRF protection
 - Input validation and sanitization
 
 ### Performance & Monitoring
 - Laravel Horizon for queue management
+- Laravel Telescope for debugging
+- New Relic for application monitoring
+- Laravel Dusk for browser testing
 - Redis for caching and queues
 
 ### Development Tools
 - PHPUnit for testing
 - Laravel Pint for code styling
+- Laravel Sail for Docker development
 - Composer for dependency management
 - NPM for frontend assets
 
@@ -118,9 +124,9 @@ bondkonnect_api/
 
 ### Prerequisites
 
-- PHP 8.2 or higher
+- PHP 8.1 or higher
 - Composer 2.x
-- MySQL 8.0+
+- PostgreSQL 14+
 - Redis 7+
 - Node.js 18+ and NPM
 - Git
@@ -155,19 +161,12 @@ php artisan key:generate
 
 6. Configure your database in `.env`:
 ```env
-DB_CONNECTION=bk_api_db
+DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=bk_api_db
+DB_PORT=5432
+DB_DATABASE=bondkonnect
 DB_USERNAME=your_username
 DB_PASSWORD=your_password
-
-# BK Legacy Database
-BK_HOST=127.0.0.1
-BK_PORT=3306
-BK_DATABASE=bk_db
-BK_USERNAME=your_username
-BK_PASSWORD=your_password
 
 REDIS_HOST=127.0.0.1
 REDIS_PASSWORD=null

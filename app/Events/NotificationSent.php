@@ -2,7 +2,9 @@
 
 namespace App\Events;
 
+use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -14,12 +16,13 @@ class NotificationSent implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $notification;
-
     public $userId;
 
     /**
      * Create a new event instance.
      *
+     * @param array $notification
+     * @param int $userId
      * @return void
      */
     public function __construct(array $notification, int $userId)
@@ -27,9 +30,9 @@ class NotificationSent implements ShouldBroadcast
         $this->notification = $notification;
         $this->userId = $userId;
 
-        Log::info('NotificationSent event created', [
+        Log::info("NotificationSent event created", [
             'user_id' => $userId,
-            'notification_id' => $notification['id'] ?? 'unknown',
+            'notification_id' => $notification['id'] ?? 'unknown'
         ]);
     }
 
@@ -40,7 +43,7 @@ class NotificationSent implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
-        $channel = 'notifications.'.$this->userId;
+        $channel = 'notifications.' . $this->userId;
         Log::info("Broadcasting notification to channel: {$channel}");
 
         return [
@@ -50,6 +53,8 @@ class NotificationSent implements ShouldBroadcast
 
     /**
      * The event's broadcast name.
+     *
+     * @return string
      */
     public function broadcastAs(): string
     {
@@ -58,6 +63,8 @@ class NotificationSent implements ShouldBroadcast
 
     /**
      * Get the data to broadcast.
+     *
+     * @return array
      */
     public function broadcastWith(): array
     {

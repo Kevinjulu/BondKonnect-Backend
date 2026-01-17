@@ -5,27 +5,28 @@ namespace App\Mail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
 class ForgotPasswordMail extends Mailable
 {
     use Queueable, SerializesModels;
 
+
     /**
      * Create a new message instance.
      */
+
     public $name;
-
     public $email;
-
     public $link;
 
     public function __construct($data)
     {
-        $this->name = $data['name'];
-        $this->email = $data['email'];
-        $this->link = $data['verification_link'];
+        $this->name=$data["name"];
+        $this->email=$data["email"];
+        $this->link=$data["verification_link"];
 
     }
 
@@ -47,8 +48,8 @@ class ForgotPasswordMail extends Mailable
         return new Content(
             view: 'emails.Forgot_pass',
             with: ['verification_link' => $this->link,
-                'name' => $this->name,
-                'email' => $this->email,
+            'name'=> $this->name,
+            'email'=>$this->email,
 
             ]
         );

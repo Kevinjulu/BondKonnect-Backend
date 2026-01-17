@@ -1,19 +1,19 @@
 <?php
 
 namespace App\Http\Controllers\V1\Financials;
-
-use App\Http\Controllers\Controller;
-use App\Http\Controllers\V1\Defaults\StandardFunctions;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\V1\Defaults\StandardFunctions;
 
 class FinancialController extends Controller
 {
     public function addSubscriptionPlan(Request $request)
     {
-        Log::info('Add Subscription Plan Request: '.json_encode($request->all()));
+        Log::info('Add Subscription Plan Request: ' . json_encode($request->all()));
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -27,21 +27,21 @@ class FinancialController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
-                'errors' => $validator->errors(),
+                'errors' => $validator->errors()
             ], 422);
         }
 
         try {
             $this->bk_db->beginTransaction();
 
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($request->user_email);
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -52,7 +52,7 @@ class FinancialController extends Controller
                 // 'IsActive' => $request->is_active ?? true,
                 'IsActive' => true,
                 'created_by' => $user->Id,
-                'created_on' => Carbon::now(),
+                'created_on' => Carbon::now()
             ]);
 
             $this->bk_db->commit();
@@ -60,24 +60,23 @@ class FinancialController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Subscription plan created successfully.',
-                'data' => ['plan_id' => $planId],
+                'data' => ['plan_id' => $planId]
             ]);
 
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-            Log::error('Error creating subscription plan: '.$th->getMessage());
-
+            Log::error('Error creating subscription plan: ' . $th->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred creating subscription plan.',
-                'error' => $th->getMessage(),
+                'error' => $th->getMessage()
             ], 500);
         }
     }
 
     public function addSubFeaturesCategories(Request $request)
     {
-        Log::info('Add Subscription Features Categories Request: '.json_encode($request->all()));
+        Log::info('Add Subscription Features Categories Request: ' . json_encode($request->all()));
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -90,21 +89,21 @@ class FinancialController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
-                'errors' => $validator->errors(),
+                'errors' => $validator->errors()
             ], 422);
         }
 
         try {
             $this->bk_db->beginTransaction();
 
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($request->user_email);
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -113,7 +112,7 @@ class FinancialController extends Controller
                 'Description' => $request->description,
                 'Level' => $request->level,
                 'created_by' => $user->Id,
-                'created_on' => Carbon::now(),
+                'created_on' => Carbon::now()
             ]);
 
             $this->bk_db->commit();
@@ -121,24 +120,23 @@ class FinancialController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Subscription features category created successfully.',
-                'data' => ['category_id' => $categoryId],
+                'data' => ['category_id' => $categoryId]
             ]);
 
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-            Log::error('Error creating subscription features category: '.$th->getMessage());
-
+            Log::error('Error creating subscription features category: ' . $th->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred creating subscription features category.',
-                'error' => $th->getMessage(),
+                'error' => $th->getMessage()
             ], 500);
         }
     }
 
     public function addSubFeatures(Request $request)
     {
-        Log::info('Add Subscription Features Request: '.json_encode($request->all()));
+        Log::info('Add Subscription Features Request: ' . json_encode($request->all()));
 
         $validator = Validator::make($request->all(), [
             'category_id' => 'required|integer|exists:bk_db.subscriptionfeaturescategories,Id',
@@ -153,21 +151,21 @@ class FinancialController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
-                'errors' => $validator->errors(),
+                'errors' => $validator->errors()
             ], 422);
         }
 
         try {
             $this->bk_db->beginTransaction();
 
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($request->user_email);
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -178,7 +176,7 @@ class FinancialController extends Controller
                 'Description' => $request->description,
                 'Level' => $request->level,
                 'created_by' => $user->Id,
-                'created_on' => Carbon::now(),
+                'created_on' => Carbon::now()
             ]);
 
             $this->bk_db->commit();
@@ -186,24 +184,23 @@ class FinancialController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Subscription feature created successfully.',
-                'data' => ['feature_id' => $featureId],
+                'data' => ['feature_id' => $featureId]
             ]);
 
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-            Log::error('Error creating subscription feature: '.$th->getMessage());
-
+            Log::error('Error creating subscription feature: ' . $th->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred creating subscription feature.',
-                'error' => $th->getMessage(),
+                'error' => $th->getMessage()
             ], 500);
         }
     }
 
     public function addBillingDetails(Request $request)
     {
-        Log::info('Add Billing Details Request: '.json_encode($request->all()));
+        Log::info('Add Billing Details Request: ' . json_encode($request->all()));
 
         $validator = Validator::make($request->all(), [
             'subscription_plan_id' => 'required|integer|exists:bk_db.subscriptionplan,Id',
@@ -212,28 +209,28 @@ class FinancialController extends Controller
             'currency' => 'required|integer',
             'unit_price' => 'required|numeric',
             'name' => 'required|string|max:255',
-            'description' => 'required|string',
+            'description' => 'required|string'
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
-                'errors' => $validator->errors(),
+                'errors' => $validator->errors()
             ], 422);
         }
 
         try {
             $this->bk_db->beginTransaction();
 
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($request->user_email);
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -245,7 +242,7 @@ class FinancialController extends Controller
                 'Name' => $request->name,
                 'Description' => $request->description,
                 'created_by' => $user->Id,
-                'created_on' => Carbon::now(),
+                'created_on' => Carbon::now()
             ]);
 
             $this->bk_db->commit();
@@ -253,24 +250,23 @@ class FinancialController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Billing details created successfully.',
-                'data' => ['billing_id' => $billingId],
+                'data' => ['billing_id' => $billingId]
             ]);
 
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-            Log::error('Error creating billing details: '.$th->getMessage());
-
+            Log::error('Error creating billing details: ' . $th->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred creating billing details.',
-                'error' => $th->getMessage(),
+                'error' => $th->getMessage()
             ], 500);
         }
     }
 
     public function getAllSubscriptions(Request $request)
     {
-        Log::info('Get All Subscriptions Request: '.json_encode($request->all()));
+        Log::info('Get All Subscriptions Request: ' . json_encode($request->all()));
 
         try {
             // Get all Subscriptions with related plan and user information
@@ -289,16 +285,15 @@ class FinancialController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'All Subscriptions fetched successfully.',
-                'data' => $Subscriptions,
+                'data' => $Subscriptions
             ]);
 
         } catch (\Throwable $th) {
-            Log::error('Error fetching all Subscriptions: '.$th->getMessage());
-
+            Log::error('Error fetching all Subscriptions: ' . $th->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred fetching Subscriptions.',
-                'error' => $th->getMessage(),
+                'error' => $th->getMessage()
             ], 500);
         }
     }
@@ -333,16 +328,15 @@ class FinancialController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'All subscription plans fetched successfully.',
-                'data' => $plans,
+                'data' => $plans
             ]);
 
         } catch (\Throwable $th) {
-            Log::error('Error fetching all subscription plans: '.$th->getMessage());
-
+            Log::error('Error fetching all subscription plans: ' . $th->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred fetching subscription plans.',
-                'error' => $th->getMessage(),
+                'error' => $th->getMessage()
             ], 500);
         }
     }
@@ -360,20 +354,18 @@ class FinancialController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'All feature categories fetched successfully.',
-                'data' => $categories,
+                'data' => $categories
             ]);
 
         } catch (\Throwable $th) {
-            Log::error('Error fetching all feature categories: '.$th->getMessage());
-
+            Log::error('Error fetching all feature categories: ' . $th->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred fetching feature categories.',
-                'error' => $th->getMessage(),
+                'error' => $th->getMessage()
             ], 500);
         }
     }
-
     public function getAllFeatures(Request $request)
     {
         Log::info('Get All Features Request');
@@ -395,45 +387,44 @@ class FinancialController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'All subscription features fetched successfully.',
-                'data' => $features,
+                'data' => $features
             ]);
 
         } catch (\Throwable $th) {
-            Log::error('Error fetching all subscription features: '.$th->getMessage());
-
+            Log::error('Error fetching all subscription features: ' . $th->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred fetching subscription features.',
-                'error' => $th->getMessage(),
+                'error' => $th->getMessage()
             ], 500);
         }
     }
 
     public function getUserSubscriptions(Request $request)
     {
-        Log::info('Get User Subscriptions Request: '.json_encode($request->all()));
+        Log::info('Get User Subscriptions Request: ' . json_encode($request->all()));
 
         $validator = Validator::make($request->all(), [
-            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+           'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
-                'errors' => $validator->errors(),
+                'errors' => $validator->errors()
             ], 422);
         }
 
         try {
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($request->user_email);
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -452,33 +443,31 @@ class FinancialController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'User Subscriptions fetched successfully.',
-                'data' => $Subscriptions,
+                'data' => $Subscriptions
             ]);
 
         } catch (\Throwable $th) {
-            Log::error('Error fetching user Subscriptions: '.$th->getMessage());
-
+            Log::error('Error fetching user Subscriptions: ' . $th->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred fetching user Subscriptions.',
-                'error' => $th->getMessage(),
+                'error' => $th->getMessage()
             ], 500);
         }
     }
-
     public function getSubscriptionPlanDetails(Request $request)
     {
-        Log::info('Get Subscription Plan Details Request: '.json_encode($request->all()));
+        Log::info('Get Subscription Plan Details Request: ' . json_encode($request->all()));
 
         $validator = Validator::make($request->all(), [
-            'plan_id' => 'required|integer|exists:bk_db.subscriptionplan,Id',
+            'plan_id' => 'required|integer|exists:bk_db.subscriptionplan,Id'
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
-                'errors' => $validator->errors(),
+                'errors' => $validator->errors()
             ], 422);
         }
 
@@ -488,11 +477,11 @@ class FinancialController extends Controller
                 ->where('Id', $request->plan_id)
                 ->first();
 
-            if (! $plan) {
+            if (!$plan) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Subscription plan not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -518,52 +507,51 @@ class FinancialController extends Controller
                 'data' => [
                     'plan' => $plan,
                     'billing_details' => $billingDetails,
-                    'features' => $features,
-                ],
+                    'features' => $features
+                ]
             ]);
 
         } catch (\Throwable $th) {
-            Log::error('Error fetching subscription plan details: '.$th->getMessage());
-
+            Log::error('Error fetching subscription plan details: ' . $th->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred fetching subscription plan details.',
-                'error' => $th->getMessage(),
+                'error' => $th->getMessage()
             ], 500);
         }
     }
 
     public function addNewSubscription(Request $request)
     {
-        Log::info('Add New Subscription Request: '.json_encode($request->all()));
+        Log::info('Add New Subscription Request: ' . json_encode($request->all()));
 
         $validator = Validator::make($request->all(), [
             'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
             'plan_id' => 'required|integer|exists:bk_db.subscriptionplan,Id',
             'amount_paid' => 'required|numeric',
             'discount' => 'required|numeric',
-            'subscription_status' => 'required|integer',
+            'subscription_status' => 'required|integer'
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
-                'errors' => $validator->errors(),
+                'errors' => $validator->errors()
             ], 422);
         }
 
         try {
             $this->bk_db->beginTransaction();
 
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($request->user_email);
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -572,11 +560,11 @@ class FinancialController extends Controller
                 ->where('SubscriptionPlanId', $request->plan_id)
                 ->first();
 
-            if (! $plan) {
+            if (!$plan) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Subscription plan billing details not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -591,7 +579,7 @@ class FinancialController extends Controller
                 'Discount' => $request->discount,
                 'SubscriptionStatus' => $request->subscription_status,
                 'created_by' => $user->Id,
-                'created_on' => Carbon::now(),
+                'created_on' => Carbon::now()
             ]);
 
             $this->bk_db->commit();
@@ -601,18 +589,17 @@ class FinancialController extends Controller
                 'message' => 'Subscription created successfully.',
                 'data' => [
                     'subscription_id' => $subscriptionId,
-                    'due_date' => $dueDate,
-                ],
+                    'due_date' => $dueDate
+                ]
             ]);
 
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-            Log::error('Error creating subscription: '.$th->getMessage());
-
+            Log::error('Error creating subscription: ' . $th->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred creating subscription.',
-                'error' => $th->getMessage(),
+                'error' => $th->getMessage()
             ], 500);
         }
     }

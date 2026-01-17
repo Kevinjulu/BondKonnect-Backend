@@ -1,28 +1,29 @@
 <?php
 
 namespace App\Http\Controllers\V1\Defaults;
-
-use App\Http\Controllers\Controller;
-use App\Http\Controllers\v1\Defaults\StandardFunctions;
-use App\Mail\ForgotPasswordMail;
-use App\Mail\GeneralMail;
-use App\Mail\OtpMail;
-use App\Mail\PromotionalMail;
-use App\Mail\SubscriptionsMail;
-use App\Mail\Verificationlink;
-use App\Mail\VerifyIntermediaryMail;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
+use App\Mail\OtpMail;
+use App\Mail\GeneralMail;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use App\Mail\PromotionalMail;
+use App\Mail\Verificationlink;
+use App\Mail\SubscriptionsMail;
+use App\Mail\ForgotPasswordMail;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use App\Mail\VerifyIntermediaryMail;
+use Illuminate\Support\Facades\Mail;
+use App\Http\Controllers\v1\Defaults\StandardFunctions;
 
 class CommunicationManagement extends Controller
 {
-    public function composeMail($email, $firstName, $isOtp, $isVerification, $isIntermediaryVerification, $isGeneral, $isForgot, $isPromo, $isSubscription, $generalSubject = null, $generalBody = null)
+
+
+    public function composeMail($email, $firstName, $isOtp,  $isVerification,$isIntermediaryVerification, $isGeneral, $isForgot, $isPromo, $isSubscription, $generalSubject = null, $generalBody = null)
     {
         try {
-            if (! $email) {
+            if (!$email) {
                 return [
                     'success' => false,
                     'message' => 'User has no email',
@@ -44,33 +45,33 @@ class CommunicationManagement extends Controller
                     return $verification_result;
                 }
 
-                Log::info('Verification result: '.json_encode($verification_result), [
+                Log::info('Verification result: ' . json_encode($verification_result), [
                     // 'file' => __FILE__,
                     // 'line' => __LINE__
                 ]);
                 $verification_link = $verification_result['data'];
 
-                if ($firstName) {
-                    // means this is an Individual
+                if($firstName){
+                    //means this is an Individual
                     $name = $firstName;
 
-                } else {
-                    // processes brokers, authorized dealers, corporates, agents
+                }else{
+                    //processes brokers, authorized dealers, corporates, agents
                     $name = $this->bk_db->table('portaluserlogoninfo')
-                        ->select('CompanyName')
-                        ->where('email', $email)
-                        ->first();
+                    ->select('CompanyName')
+                    ->where('email', $email)
+                    ->first();
                     $name = $name->CompanyName;
                 }
 
                 // log::info(($name->FirstName));
 
                 $data = [
-                    'verification_link' => $verification_link,
-                    'name' => $name,
-                    'email' => $email,
+                    "verification_link" => $verification_link,
+                    "name" => $name,
+                    "email" => $email,
                 ];
-                log::info('email details', $data);
+                log::info("email details",$data);
 
                 // new mailer
                 Mail::to($email)
@@ -79,8 +80,8 @@ class CommunicationManagement extends Controller
 
             }
 
-            // Send intermediary verification email
-            elseif ($isIntermediaryVerification) {
+                // Send intermediary verification email
+            else if ($isIntermediaryVerification) {
                 $verification_result = $this->generate_intermediary_verification_link($email);
 
                 if ($verification_result['success'] == false) {
@@ -93,11 +94,11 @@ class CommunicationManagement extends Controller
                 // log::info(($name->FirstName));
 
                 $data = [
-                    'verification_link' => $verification_link,
+                    "verification_link" => $verification_link,
                     // "name" => $name,
-                    'email' => $email,
+                    "email" => $email,
                 ];
-                log::info('intermediary email details', $data);
+                log::info("intermediary email details",$data);
 
                 // new mailer
                 Mail::to($email)
@@ -107,7 +108,7 @@ class CommunicationManagement extends Controller
             }
 
             // Send OTP email
-            elseif ($isOtp) {
+            else if ($isOtp) {
                 $otp = $this->generate_send_otp($email);
 
                 if ($otp['success'] == false) {
@@ -115,33 +116,34 @@ class CommunicationManagement extends Controller
                 }
 
                 $otp = $otp['data'];
-                Log::info('OTP: '.$otp);
+                Log::info('OTP: ' . $otp);
 
-                if ($firstName) {
-                    // means this is an Individual
+                if($firstName){
+                    //means this is an Individual
                     $name = $firstName;
 
-                } else {
-                    // processes brokers, authorized dealers, corporates, agents
+                }else{
+                    //processes brokers, authorized dealers, corporates, agents
                     $name = $this->bk_db->table('portaluserlogoninfo')
-                        ->select('CompanyName')
-                        ->where('email', $email)
-                        ->first();
+                    ->select('CompanyName')
+                    ->where('email', $email)
+                    ->first();
                     $name = $name->CompanyName;
                 }
 
                 $data = [
-                    'name' => $name,
-                    'otp' => $otp,
-                    'email' => $email,
+                    "name" => $name,
+                    "otp" => $otp,
+                    "email" => $email,
                 ];
                 Mail::to($email)->send(new OtpMail($data));
 
+
             }
 
-            // Send Forgot Password email
+            //Send Forgot Password email
 
-            elseif ($isForgot) {
+            else if ($isForgot) {
 
                 $verification_result = $this->generate_verification_link($email);
 
@@ -152,31 +154,32 @@ class CommunicationManagement extends Controller
                 Log::info(json_encode($verification_result));
                 $verification_link = $verification_result['data'];
 
-                if ($firstName) {
-                    // means this is an Individual
+                if($firstName){
+                    //means this is an Individual
                     $name = $firstName;
 
-                } else {
-                    // processes brokers, authorized dealers, corporates, agents
+                }else{
+                    //processes brokers, authorized dealers, corporates, agents
                     $name = $this->bk_db->table('portaluserlogoninfo')
-                        ->select('CompanyName')
-                        ->where('email', $email)
-                        ->first();
+                    ->select('CompanyName')
+                    ->where('email', $email)
+                    ->first();
                     $name = $name->CompanyName;
                 }
 
                 $data = [
-                    'name' => $name,
-                    'verification_link' => $verification_link,
-                    'email' => $email,
+                    "name" => $name,
+                    "verification_link" => $verification_link,
+                    "email" => $email,
                 ];
                 Mail::to($email)->send(new ForgotPasswordMail($data));
+
 
             }
 
             // Send general email
-            elseif ($isGeneral) {
-                if (! $generalSubject || ! $generalBody) {
+            else if ($isGeneral) {
+                if (!$generalSubject || !$generalBody) {
                     return [
                         'success' => false,
                         'message' => 'General email requires subject and body',
@@ -184,57 +187,59 @@ class CommunicationManagement extends Controller
                     ];
                 }
 
-                // fetch name
-                if ($firstName) {
-                    // means this is an Individual
+                //fetch name
+                if($firstName){
+                    //means this is an Individual
                     $name = $firstName;
 
-                } else {
-                    // processes brokers, authorized dealers, corporates, agents
+                }else{
+                    //processes brokers, authorized dealers, corporates, agents
                     $name = $this->bk_db->table('portaluserlogoninfo')
-                        ->select('CompanyName')
-                        ->where('email', $email)
-                        ->first();
+                    ->select('CompanyName')
+                    ->where('email', $email)
+                    ->first();
                     $name = $name->CompanyName;
                 }
 
                 if ($generalSubject && $generalBody && $isPromo) {
-                    // send promo email
+                    //send promo email
 
                     $data = [
-                        'name' => $name,
-                        'general_subject' => $generalSubject,
-                        'general_body' => $generalBody,
+                        "name" => $name,
+                        "general_subject" => $generalSubject,
+                        "general_body" => $generalBody,
                         // "verification_link" => $verification_link,
-                        'email' => $email,
+                        "email" => $email,
                     ];
                     Mail::to($email)->send(new PromotionalMail($data));
-                } elseif ($generalSubject && $generalBody && $isSubscription) {
-                    // send subscription email
+                }
+                else if ($generalSubject && $generalBody && $isSubscription) {
+                // send subscription email
 
                     $data = [
-                        'name' => $name,
-                        'general_subject' => $generalSubject,
-                        'general_body' => $generalBody,
+                        "name" => $name,
+                        "general_subject" => $generalSubject,
+                        "general_body" => $generalBody,
                         // "verification_link" => $verification_link,
-                        'email' => $email,
+                        "email" => $email,
                     ];
                     Mail::to($email)->send(new SubscriptionsMail($data));
-                } else {
+                }
+
+                else {
                     // send pure general mail
                     $data = [
-                        'name' => $name,
-                        'general_subject' => $generalSubject,
-                        'general_body' => $generalBody,
+                        "name" => $name,
+                        "general_subject" => $generalSubject,
+                        "general_body" => $generalBody,
                         // "verification_link" => $verification_link,
-                        'email' => $email,
+                        "email" => $email,
                     ];
                     Mail::to($email)->send(new GeneralMail($data));
 
                 }
 
             }
-
             return [
                 'success' => true,
                 'message' => 'Email sent successfully',
@@ -242,7 +247,7 @@ class CommunicationManagement extends Controller
             ];
 
         } catch (\Throwable $th) {
-            // throw $th;
+            //throw $th;
             return [
                 'success' => false,
                 'message' => 'Error sending email',
@@ -272,7 +277,7 @@ class CommunicationManagement extends Controller
         try {
             // $domain = 'http://localhost:3000';
             $domain = config('app.web_url');
-            if (! $email) {
+            if (!$email) {
                 return [
                     'success' => false,
                     'message' => 'User has no email',
@@ -287,77 +292,80 @@ class CommunicationManagement extends Controller
             //     ];
             // }
 
-            $standard = new StandardFunctions;
+            $standard = new StandardFunctions();
             $user = $standard->get_user_id($email);
 
-            if (! $user) {
+            if (!$user) {
                 return [
                     'success' => false,
                     'message' => 'User not found',
-                    'data' => 'User '.$email.' not found',
+                    'data' => 'User ' . $email . ' not found',
                 ];
             }
+
 
             $role = $this->bk_db->table('userroles')
-                ->where('User', $user->Id)
-                ->first();
+            ->where('User', $user->Id)
+            ->first();
 
             $role_id = $role->Role;
-            $is_reset = $user->IsActive == 1 ? true : false;
-            if ($role_id === 1) {
+            $is_reset = $user->IsActive == 1 ? true  :  false;
+            if ($role_id === 1)    {
 
-                // make the link properties
-                $link_properties = [
-                    'e' => $email, // email
-                    'pe' => $role->Role, // $user_type, // user type
-                    't' => time(), // timestamp
-                    // 's' => hash_hmac('sha256', $email . $user_type . time(), env('APP_KEY')), // signature
-                    's' => hash_hmac('sha256', $email.time(), env('APP_KEY')), // signature
-                    'd' => $domain, // domain
-                    'pt' => '/admin/set-password', // path
-                    'ex' => strtotime(datetime: '+1 day'), // expires
-                    'is_res' => $is_reset, // is reset
-                ];
-                // generate the link
-                $verification_link = $link_properties['d'].$link_properties['pt'].'?'.http_build_query($link_properties);
-                Log::info($verification_link);
+            // make the link properties
+            $link_properties = [
+                'e' => $email, // email
+                'pe' => $role->Role, //$user_type, // user type
+                't' => time(), // timestamp
+                //'s' => hash_hmac('sha256', $email . $user_type . time(), env('APP_KEY')), // signature
+                's' => hash_hmac('sha256', $email . time(), env('APP_KEY')), // signature
+                'd' => $domain, // domain
+                'pt' => '/admin/set-password', // path
+                'ex' => strtotime(datetime: '+1 day'), // expires
+                'is_res' => $is_reset, // is reset
+            ];
+            // generate the link
+            $verification_link = $link_properties['d'] . $link_properties['pt'] . '?' . http_build_query($link_properties);
+            Log::info($verification_link);
 
-                // add the details to the database under UserEmailVerification
-                $this->bk_db->table('portaluseremailverification')->insert([
-                    'User' => $user->Id,
-                    'created_on' => date('Y-m-d H:i:s'),
-                    'ExpiresAt' => date('Y-m-d H:i:s', $link_properties['ex']),
-                    'IsVerified' => false,
-                    'Signature' => $link_properties['s'],
-                ]);
+            // add the details to the database under UserEmailVerification
+            $this->bk_db->table('portaluseremailverification')->insert([
+                'User' => $user->Id,
+                'created_on' => date('Y-m-d H:i:s'),
+                'ExpiresAt' => date('Y-m-d H:i:s', $link_properties['ex']),
+                'IsVerified' => false,
+                'Signature' => $link_properties['s'],
+            ]);
 
-            } else {
-                // make the link properties
-                $link_properties = [
-                    'e' => $email, // email
-                    'pe' => $role->Role, // $user_type, // user type
-                    't' => time(), // timestamp
-                    // 's' => hash_hmac('sha256', $email . $user_type . time(), env('APP_KEY')), // signature
-                    's' => hash_hmac('sha256', $email.time(), env('APP_KEY')), // signature
-                    'd' => $domain, // domain
-                    'pt' => '/auth/set-password', // path
-                    'ex' => strtotime(datetime: '+1 day'), // expires
-                    'is_res' => $is_reset, // is reset
-                ];
-                // generate the link
-                $verification_link = $link_properties['d'].$link_properties['pt'].'?'.http_build_query($link_properties);
-                Log::info($verification_link);
 
-                // add the details to the database under UserEmailVerification
-                $this->bk_db->table('portaluseremailverification')->insert([
-                    'User' => $user->Id,
-                    'created_on' => date('Y-m-d H:i:s'),
-                    'ExpiresAt' => date('Y-m-d H:i:s', $link_properties['ex']),
-                    'IsVerified' => false,
-                    'Signature' => $link_properties['s'],
-                ]);
+            } else{
+            // make the link properties
+            $link_properties = [
+                'e' => $email, // email
+                'pe' => $role->Role, //$user_type, // user type
+                't' => time(), // timestamp
+                //'s' => hash_hmac('sha256', $email . $user_type . time(), env('APP_KEY')), // signature
+                's' => hash_hmac('sha256', $email . time(), env('APP_KEY')), // signature
+                'd' => $domain, // domain
+                'pt' => '/auth/set-password', // path
+                'ex' => strtotime(datetime: '+1 day'), // expires
+                'is_res' => $is_reset, // is reset
+            ];
+            // generate the link
+            $verification_link = $link_properties['d'] . $link_properties['pt'] . '?' . http_build_query($link_properties);
+            Log::info($verification_link);
+
+            // add the details to the database under UserEmailVerification
+            $this->bk_db->table('portaluseremailverification')->insert([
+                'User' => $user->Id,
+                'created_on' => date('Y-m-d H:i:s'),
+                'ExpiresAt' => date('Y-m-d H:i:s', $link_properties['ex']),
+                'IsVerified' => false,
+                'Signature' => $link_properties['s'],
+            ]);
 
             }
+
 
             return [
                 'success' => true,
@@ -366,7 +374,7 @@ class CommunicationManagement extends Controller
             ];
 
         } catch (\Throwable $th) {
-            // throw $th;
+            //throw $th;
             return [
                 'success' => false,
                 'message' => 'Error generating verification link',
@@ -381,7 +389,7 @@ class CommunicationManagement extends Controller
         try {
             // $domain = 'http://localhost:3000';
             $domain = config('app.web_url');
-            if (! $email) {
+            if (!$email) {
                 return [
                     'success' => false,
                     'message' => 'User has no email',
@@ -396,23 +404,24 @@ class CommunicationManagement extends Controller
             //     ];
             // }
 
-            $standard = new StandardFunctions;
+            $standard = new StandardFunctions();
             $user = $standard->get_user_id($email);
 
-            if (! $user) {
+            if (!$user) {
                 return [
                     'success' => false,
                     'message' => 'User not found',
-                    'data' => 'User '.$email.' not found',
+                    'data' => 'User ' . $email . ' not found',
                 ];
             }
 
+
             $role = $this->bk_db->table('userroles')
-                ->where('User', $user->Id)
-                ->first();
+            ->where('User', $user->Id)
+            ->first();
 
             $role_id = $role->Role;
-            $is_reset = $user->IsActive == 1 ? true : false;
+            $is_reset = $user->IsActive == 1 ? true  :  false;
             // if ($role_id === 1)    {
 
             // // make the link properties
@@ -440,21 +449,22 @@ class CommunicationManagement extends Controller
             //     'Signature' => $link_properties['s'],
             // ]);
 
+
             // } else{
             // make the link properties
             $link_properties = [
                 'e' => $email, // email
-                'pe' => $role->Role, // $user_type, // user type
+                'pe' => $role->Role, //$user_type, // user type
                 't' => time(), // timestamp
-                // 's' => hash_hmac('sha256', $email . $user_type . time(), env('APP_KEY')), // signature
-                's' => hash_hmac('sha256', $email.time(), env('APP_KEY')), // signature
+                //'s' => hash_hmac('sha256', $email . $user_type . time(), env('APP_KEY')), // signature
+                's' => hash_hmac('sha256', $email . time(), env('APP_KEY')), // signature
                 'd' => $domain, // domain
                 'pt' => '/auth/intermediary', // path
                 'ex' => strtotime(datetime: '+1 day'), // expires
                 'is_res' => $is_reset, // is reset
             ];
             // generate the link
-            $verification_link = $link_properties['d'].$link_properties['pt'].'?'.http_build_query($link_properties);
+            $verification_link = $link_properties['d'] . $link_properties['pt'] . '?' . http_build_query($link_properties);
             Log::info($verification_link);
 
             // add the details to the database under UserEmailVerification
@@ -468,6 +478,7 @@ class CommunicationManagement extends Controller
 
             // }
 
+
             return [
                 'success' => true,
                 'message' => 'Verification link generated successfully',
@@ -475,7 +486,7 @@ class CommunicationManagement extends Controller
             ];
 
         } catch (\Throwable $th) {
-            // throw $th;
+            //throw $th;
             return [
                 'success' => false,
                 'message' => 'Error generating verification link',
@@ -484,13 +495,12 @@ class CommunicationManagement extends Controller
         }
 
     }
-
     public function generate_send_otp($email)
     {
         try {
             // generate OTP
 
-            if (! $email) {
+            if (!$email) {
                 return [
                     'success' => false,
                     'message' => 'User has no email',
@@ -501,10 +511,10 @@ class CommunicationManagement extends Controller
             $otp = rand(100000, 999999);
 
             // get user id from email
-            $standard = new StandardFunctions;
+            $standard = new StandardFunctions();
             $login_id = $standard->get_user_id($email);
 
-            if (! $login_id) {
+            if (!$login_id) {
                 return [
                     'success' => false,
                     'message' => 'User not found',
@@ -533,7 +543,7 @@ class CommunicationManagement extends Controller
                 'user_id' => $login_id->Id,
                 'otp' => $otp,
                 'expires_at' => Carbon::now()->addMinutes(5),
-                'current_time' => Carbon::now(),
+                'current_time' => Carbon::now()
             ]);
 
             return [
@@ -544,7 +554,6 @@ class CommunicationManagement extends Controller
 
         } catch (\Throwable $th) {
             Log::error('Error generating OTP', ['error' => $th->getMessage()]);
-
             return [
                 'success' => false,
                 'message' => 'Error generating OTP',
@@ -555,23 +564,23 @@ class CommunicationManagement extends Controller
 
     public function createEmail(Request $request)
     {
-        $request->validate([
-            'subject' => 'required|string',
-            'body' => 'required|string',
-            'recipients' => 'required|array',
-            'recipients.*' => 'email',
-            'cc' => 'nullable|array',
-            'cc.*' => 'email',
-            'bcc' => 'nullable|array',
-            'bcc.*' => 'email',
-            'template_type' => 'nullable|string',
-            'schedule_date' => 'nullable|date',
-            'attachments' => 'nullable|array',
-            'attachments.*' => 'file|max:10240',
-            'send_to_role' => 'nullable|string',
-            // 'send_to_group' => 'nullable|numeric',
-            'created_by' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
-        ]);
+            $request->validate([
+                'subject' => 'required|string',
+                'body' => 'required|string',
+                'recipients' => 'required|array',
+                'recipients.*' => 'email',
+                'cc' => 'nullable|array',
+                'cc.*' => 'email',
+                'bcc' => 'nullable|array',
+                'bcc.*' => 'email',
+                'template_type' => 'nullable|string',
+                'schedule_date' => 'nullable|date',
+                'attachments' => 'nullable|array',
+                'attachments.*' => 'file|max:10240',
+                'send_to_role' => 'nullable|string',
+                // 'send_to_group' => 'nullable|numeric',
+                'created_by' => 'required|email|exists:bk_db.portaluserlogoninfo,Email'
+            ]);
 
         try {
             $this->bk_db->beginTransaction();
@@ -581,10 +590,10 @@ class CommunicationManagement extends Controller
                 ->where('Email', $request->created_by)
                 ->first();
 
-            if (! $sender) {
+            if (!$sender) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Sender not found',
+                    'message' => 'Sender not found'
                 ], 404);
             }
 
@@ -595,11 +604,11 @@ class CommunicationManagement extends Controller
                 'Body' => $request->body,
                 'CC' => json_encode($request->cc),
                 'BCC' => json_encode($request->bcc),
-                'IsBulkEmail' => $request->send_to_role ? true : false,
-                'IsDraft' => $request->schedule_date ? true : false,
+                'IsBulkEmail' => $request->send_to_role ? true  :  false,
+                'IsDraft' => $request->schedule_date ? true  :  false,
                 'IsSent' => $request->schedule_date ? false : true,
                 'ScheduleDate' => $request->schedule_date,
-                'RoleGroupSendingTo' => $request->send_to_role,
+                'RoleGroupSendingTo' => $request->send_to_role
             ]);
 
             // Handle attachments if present
@@ -616,7 +625,7 @@ class CommunicationManagement extends Controller
             // Insert into emaillogs
 
             // Send email immediately if not scheduled
-            if (! $request->schedule_date) {
+            if (!$request->schedule_date) {
                 $recipients = $request->send_to_role
                     ? $this->getRecipientsByRole($request->send_to_role)
                     : $request->recipients;
@@ -625,29 +634,30 @@ class CommunicationManagement extends Controller
 
                     $name = $this->bk_db->table('portaluserlogoninfo')
                     // ->select('FirstName')
-                        ->where('Email', $recipient)
-                        ->first();
+                    ->where('Email',  $recipient)
+                    ->first();
+
 
                     $firstname = $name->FirstName;
 
-                    if ($firstname) {
-                        // means this is an Individual
+                    if($firstname){
+                        //means this is an Individual
                         $name = $name->FirstName;
 
-                    } else {
-                        // processes brokers, authorized dealers, corporates, agents
+                    }else{
+                        //processes brokers, authorized dealers, corporates, agents
 
                         $name = $name->CompanyName;
                     }
 
                     $data = [
-                        'name' => $name,  // You might want to get this from user data
-                        'general_subject' => $request->subject,
-                        'general_body' => $request->body,
-                        'email' => $recipient,
+                        "name" => $name,  // You might want to get this from user data
+                        "general_subject" => $request->subject,
+                        "general_body" => $request->body,
+                        "email" => $recipient
                     ];
 
-                    $mailClass = match ($request->template_type) {
+                    $mailClass = match($request->template_type) {
                         'otp' => new OtpMail($data),
                         'verification' => new Verificationlink($data),
                         'intermediary' => new VerifyIntermediaryMail($data),
@@ -662,14 +672,15 @@ class CommunicationManagement extends Controller
                         ->bcc($request->bcc ?? [])
                         ->send($mailClass);
 
+
                 }
 
-                // Insert all recipients to DB
+                //Insert all recipients to DB
                 $this->bk_db->table('emaillogs')
-                    ->where('Id', $emailId)
-                    ->update(['AllRecipientsEmails' => json_encode($recipients)]);
+                ->where('Id', $emailId)
+                ->update(['AllRecipientsEmails' => json_encode($recipients)]);
 
-                Log::info('AllRecipient emails inserted');
+                Log::info("AllRecipient emails inserted");
 
             }
 
@@ -678,35 +689,34 @@ class CommunicationManagement extends Controller
             return response()->json([
                 'success' => true,
                 'message' => $request->schedule_date ? 'Email scheduled successfully' : 'Email sent successfully',
-                'data' => ['email_id' => $emailId],
+                'data' => ['email_id' => $emailId]
             ]);
 
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send email',
-                'error' => $th->getMessage(),
+                'error' => $th->getMessage()
             ], 500);
         }
     }
 
-    private function handleEmailAttachment($file, $userId, $emailId)
+    private function handleEmailAttachment($file, $userId,$emailId)
     {
         try {
             $uploadPath = storage_path('resources/dms');
-            if (! file_exists($uploadPath)) {
+            if (!file_exists($uploadPath)) {
                 mkdir($uploadPath, 0777, true);
             }
 
-            $uniqueFileName = time().'_'.$file->getClientOriginalName();
+            $uniqueFileName = time() . '_' . $file->getClientOriginalName();
             $file->move($uploadPath, $uniqueFileName);
 
             return $this->bk_db->table('SystemRefDocuments')->insertGetId([
                 'DocumentName' => $file->getClientOriginalName(),
                 'DocumentId' => Str::random(10),
-                'LocationUrl' => $uploadPath.'/'.$uniqueFileName,
+                'LocationUrl' => $uploadPath . '/' . $uniqueFileName,
                 'Extension' => $file->getClientOriginalExtension(),
                 'EmailId' => $emailId,
                 'IsEmailAttachment' => true,
@@ -715,11 +725,10 @@ class CommunicationManagement extends Controller
                 'IsInvoice' => false,
                 'IsForAdmin' => false,
                 'created_by' => $userId,
-                'created_on' => Carbon::now(),
+                'created_on' => Carbon::now()
             ]);
         } catch (\Throwable $th) {
             Log::error('Error handling email attachment:', ['error' => $th->getMessage()]);
-
             return null;
         }
     }
@@ -730,22 +739,22 @@ class CommunicationManagement extends Controller
             $templatePath = resource_path('views/emails');
             $templates = [];
 
-            foreach (glob($templatePath.'/*.blade.php') as $file) {
+            foreach (glob($templatePath . '/*.blade.php') as $file) {
                 $templates[] = [
                     'name' => basename($file, '.blade.php'),
-                    'path' => str_replace(resource_path('views/'), '', $file),
+                    'path' => str_replace(resource_path('views/'), '', $file)
                 ];
             }
 
             return response()->json([
                 'success' => true,
-                'data' => $templates,
+                'data' => $templates
             ]);
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch email templates',
-                'error' => $th->getMessage(),
+                'error' => $th->getMessage()
             ], 500);
         }
     }
@@ -754,10 +763,10 @@ class CommunicationManagement extends Controller
     {
         try {
             $data = [
-                'name' => '',  // You might want to get this from your user data
-                'general_subject' => $params['subject'],
-                'general_body' => $params['body'],
-                'email' => $params['recipient'],
+                "name" => "",  // You might want to get this from your user data
+                "general_subject" => $params['subject'],
+                "general_body" => $params['body'],
+                "email" => $params['recipient']
             ];
 
             Mail::to($params['recipient'])
@@ -768,7 +777,6 @@ class CommunicationManagement extends Controller
             return true;
         } catch (\Throwable $th) {
             Log::error('Error sending email:', ['error' => $th->getMessage()]);
-
             return false;
         }
     }
@@ -786,8 +794,8 @@ class CommunicationManagement extends Controller
                 $query->where('portaluserlogoninfo.IsActive', false);
             } else {
                 $query->join('userroles', 'portaluserlogoninfo.Id', '=', 'userroles.User')
-                    ->join('roles', 'userroles.Role', '=', 'roles.Id')
-                    ->where('roles.Role', $role);
+                      ->join('roles', 'userroles.Role', '=', 'roles.Id')
+                      ->where('roles.Role', $role);
             }
 
             $recipients = $query->select(
@@ -796,27 +804,28 @@ class CommunicationManagement extends Controller
                 'portaluserlogoninfo.OtherNames'
             )->get();
 
-            Log::info('Recipients fetched', $recipients);
+            Log::info ("Recipients fetched",$recipients);
 
             return response()->json([
                 'success' => true,
-                'data' => $recipients,
+                'data' => $recipients
             ]);
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch recipients',
-                'error' => $th->getMessage(),
+                'error' => $th->getMessage()
             ], 500);
         }
     }
+
 
     public function previewTemplate(Request $request)
     {
         try {
             $request->validate([
                 'template' => 'required|string',
-                'data' => 'required|array',
+                'data' => 'required|array'
             ]);
 
             $templateName = $request->template;
@@ -824,11 +833,11 @@ class CommunicationManagement extends Controller
 
             // Check if template exists
             $templatePath = resource_path("views/emails/{$templateName}.blade.php");
-            if (! file_exists($templatePath)) {
+            if (!file_exists($templatePath)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Template not found',
-                    'data' => null,
+                    'data' => null
                 ], 404);
             }
 
@@ -846,21 +855,21 @@ class CommunicationManagement extends Controller
                 'message' => 'Template preview generated successfully',
                 'data' => [
                     'html' => $html,
-                    'text' => $text,
-                ],
+                    'text' => $text
+                ]
             ]);
 
         } catch (\Throwable $th) {
             Log::error('Error previewing template:', [
                 'error' => $th->getMessage(),
                 'file' => $th->getFile(),
-                'line' => $th->getLine(),
+                'line' => $th->getLine()
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Error generating template preview',
-                'error' => $th->getMessage(),
+                'error' => $th->getMessage()
             ], 500);
         }
     }
@@ -869,7 +878,7 @@ class CommunicationManagement extends Controller
     {
         try {
             $templatePath = resource_path("views/emails/{$templateName}.blade.php");
-            if (! file_exists($templatePath)) {
+            if (!file_exists($templatePath)) {
                 return null;
             }
 
@@ -885,9 +894,8 @@ class CommunicationManagement extends Controller
         } catch (\Throwable $th) {
             Log::error('Error getting template variables:', [
                 'error' => $th->getMessage(),
-                'template' => $templateName,
+                'template' => $templateName
             ]);
-
             return null;
         }
     }

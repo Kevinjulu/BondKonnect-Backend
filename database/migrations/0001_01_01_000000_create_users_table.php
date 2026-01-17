@@ -6,10 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateUsersTable extends Migration
 {
-    public $withinTransaction = false;
-
-    public $withinTransaction = false;
-
     /**
      * Run the migrations.
      */

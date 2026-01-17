@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\V1\Auth;
 
-use App\Http\Controllers\Controller;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\V1\Auth\AuthController;
 
 class BroadcastingAuthController extends Controller
 {
@@ -13,26 +15,26 @@ class BroadcastingAuthController extends Controller
     public function test()
     {
         Log::info('=== BroadcastingAuthController::test method called ===');
-
+        
         try {
             // Test database connection
             $test = $this->bk_db->select('SELECT 1 as test');
             Log::info('Database test successful', ['result' => $test]);
-
+            
             return response()->json([
                 'status' => 'BroadcastingAuthController is working',
                 'database' => 'Connected',
-                'timestamp' => now()->toDateTimeString(),
+                'timestamp' => now()->toDateTimeString()
             ]);
         } catch (\Exception $e) {
             Log::error('BroadcastingAuthController test failed', [
                 'error' => $e->getMessage(),
-                'line' => $e->getLine(),
+                'line' => $e->getLine()
             ]);
-
+            
             return response()->json([
                 'status' => 'BroadcastingAuthController test failed',
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -41,31 +43,30 @@ class BroadcastingAuthController extends Controller
     {
         $startTime = microtime(true);
         Log::info('=== BroadcastingAuthController::authenticate method called ===');
-
+        
         try {
             // Get the k-o-t token from cookies or header
             $rawToken = $request->cookie('k-o-t') ?? $request->header('X-Auth-Token');
             // Sometimes cookies may be URL-encoded, decode for database lookup
             $token = $rawToken ? urldecode($rawToken) : null;
-
+            
             Log::info('Token extraction', [
                 'from_cookie' => $request->cookie('k-o-t') ? 'Present' : 'Missing',
                 'from_header' => $request->header('X-Auth-Token') ? 'Present' : 'Missing',
                 'final_token' => $token ? 'Present' : 'Missing',
-                'token_preview' => $token ? substr($token, 0, 32).'...' : 'None',
-                'token_length' => $token ? strlen($token) : 0,
+                'token_preview' => $token ? substr($token, 0, 32) . '...' : 'None',
+                'token_length' => $token ? strlen($token) : 0
             ]);
-
-            if (! $token) {
+            
+            if (!$token) {
                 Log::warning('No k-o-t token found in broadcasting auth request');
-
                 return response()->json(['message' => 'No authentication token provided'], 403);
             }
 
             Log::info('Token found', [
-                'token_preview' => substr($token, 0, 16).'...',
+                'token_preview' => substr($token, 0, 16) . '...',
                 'token_length' => strlen($token),
-                'elapsed_ms' => round((microtime(true) - $startTime) * 1000, 2),
+                'elapsed_ms' => round((microtime(true) - $startTime) * 1000, 2)
             ]);
 
             // Simple database lookup - should be fast
@@ -82,10 +83,10 @@ class BroadcastingAuthController extends Controller
 
             Log::info('Database query completed', [
                 'user_found' => $user_details ? true : false,
-                'elapsed_ms' => round((microtime(true) - $startTime) * 1000, 2),
+                'elapsed_ms' => round((microtime(true) - $startTime) * 1000, 2)
             ]);
 
-            if (! $user_details) {
+            if (!$user_details) {
                 // Let's check what tokens exist for debugging
                 $allTokens = $this->bk_db->table('portaluserlogintoken')
                     ->where('IsActive', true)
@@ -93,19 +94,18 @@ class BroadcastingAuthController extends Controller
                     ->get();
 
                 Log::warning('Token validation failed - no matching record found', [
-                    'token_preview' => substr($token, 0, 16).'...',
+                    'token_preview' => substr($token, 0, 16) . '...',
                     'total_active_tokens' => $allTokens->count(),
                     'current_time' => Carbon::now()->toDateTimeString(),
-                    'tokens_preview' => $allTokens->take(3)->map(function ($t) {
+                    'tokens_preview' => $allTokens->take(3)->map(function($t) {
                         return [
-                            'token_preview' => substr($t->Token, 0, 16).'...',
+                            'token_preview' => substr($t->Token, 0, 16) . '...',
                             'expires_at' => $t->ExpiresAt,
                             'user_id' => $t->User,
-                            'ip' => $t->IpAddress,
+                            'ip' => $t->IpAddress
                         ];
-                    }),
+                    })
                 ]);
-
                 return response()->json(['message' => 'Invalid or expired authentication token'], 403);
             }
 
@@ -118,21 +118,21 @@ class BroadcastingAuthController extends Controller
                 'channel' => $channelName,
                 'token_expires_at' => $user_details->ExpiresAt,
                 'token_ip' => $user_details->TokenIpAddress,
-                'current_ip' => $request->ip(),
+                'current_ip' => $request->ip()
             ]);
 
             // Check if the user can access the requested channel
             if (str_starts_with($channelName, 'private-notifications.')) {
                 $requestedUserId = (int) str_replace('private-notifications.', '', $channelName);
                 $canAccess = (int) $userId === $requestedUserId;
-
+                
                 Log::info('Checking notifications channel access', [
                     'user_id' => $userId,
                     'requested_user_id' => $requestedUserId,
-                    'can_access' => $canAccess,
+                    'can_access' => $canAccess
                 ]);
 
-                if (! $canAccess) {
+                if (!$canAccess) {
                     return response()->json(['message' => 'Forbidden - Channel access denied'], 403);
                 }
             } elseif (str_starts_with($channelName, 'private-messages.')) {
@@ -144,33 +144,32 @@ class BroadcastingAuthController extends Controller
 
             // Generate Pusher signature
             $socketId = $request->socket_id;
-            $stringToSign = $socketId.':'.$channelName;
+            $stringToSign = $socketId . ':' . $channelName;
             $pusherSecret = config('broadcasting.connections.pusher.secret');
             $pusherKey = config('broadcasting.connections.pusher.key');
-
+            
             Log::info('Generating Pusher signature', [
                 'pusher_key' => $pusherKey ? 'Present' : 'Missing',
                 'pusher_secret' => $pusherSecret ? 'Present' : 'Missing',
-                'string_to_sign' => $stringToSign,
+                'string_to_sign' => $stringToSign
             ]);
 
-            if (! $pusherSecret || ! $pusherKey) {
+            if (!$pusherSecret || !$pusherKey) {
                 Log::error('Pusher configuration missing', [
                     'pusher_key' => $pusherKey ? 'Present' : 'Missing',
-                    'pusher_secret' => $pusherSecret ? 'Present' : 'Missing',
+                    'pusher_secret' => $pusherSecret ? 'Present' : 'Missing'
                 ]);
-
                 return response()->json(['message' => 'Broadcasting configuration error'], 500);
             }
 
             $signature = hash_hmac('sha256', $stringToSign, $pusherSecret);
-            $auth = $pusherKey.':'.$signature;
+            $auth = $pusherKey . ':' . $signature;
 
             $totalTime = round((microtime(true) - $startTime) * 1000, 2);
             Log::info('Broadcasting authentication successful', [
                 'user_id' => $userId,
                 'channel' => $channelName,
-                'total_time_ms' => $totalTime,
+                'total_time_ms' => $totalTime
             ]);
 
             return response()->json([
@@ -181,9 +180,9 @@ class BroadcastingAuthController extends Controller
                         'id' => $userId,
                         'email' => $user_details->Email,
                         'first_name' => $user_details->FirstName ?? '',
-                        'company_name' => $user_details->CompanyName ?? '',
-                    ],
-                ]),
+                        'company_name' => $user_details->CompanyName ?? ''
+                    ]
+                ])
             ]);
 
         } catch (\Exception $e) {
@@ -191,10 +190,10 @@ class BroadcastingAuthController extends Controller
             Log::error('Broadcasting authentication error', [
                 'error' => $e->getMessage(),
                 'total_time_ms' => $totalTime,
-                'line' => $e->getLine(),
+                'line' => $e->getLine()
             ]);
 
             return response()->json(['message' => 'Internal Server Error'], 500);
         }
     }
-}
+} 

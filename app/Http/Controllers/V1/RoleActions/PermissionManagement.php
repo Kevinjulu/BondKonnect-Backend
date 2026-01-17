@@ -1,12 +1,10 @@
 <?php
 
 namespace App\Http\Controllers\V1\RoleActions;
-
-use App\Http\Controllers\Controller;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-
+use App\Http\Controllers\Controller;
 class PermissionManagement extends Controller
 {
     public function getRoles()
@@ -37,7 +35,6 @@ class PermissionManagement extends Controller
             ], 500);
         }
     }
-
     public function getUsersByRole(Request $request)
     {
         $request->validate([
@@ -49,7 +46,7 @@ class PermissionManagement extends Controller
             $users = $this->bk_db->table('portaluserlogoninfo')
                 ->join('portaluserrolepermissions', 'portaluserlogoninfo.Id', '=', 'portaluserrolepermissions.User')
                 ->where('portaluserrolepermissions.Role', $role_id)
-                ->select('portaluserlogoninfo.Id', 'portaluserlogoninfo.Email', 'portaluserlogoninfo.FirstName', 'portaluserlogoninfo.OtherNames', 'portaluserlogoninfo.UserName', 'portaluserlogoninfo.CompanyName as CompanyName', 'portaluserlogoninfo.PhoneNumber as PhoneNumber', 'portaluserlogoninfo.AccountId as AccountId')
+                ->select('portaluserlogoninfo.Id', 'portaluserlogoninfo.Email','portaluserlogoninfo.FirstName','portaluserlogoninfo.OtherNames', 'portaluserlogoninfo.UserName', 'portaluserlogoninfo.CompanyName as CompanyName','portaluserlogoninfo.PhoneNumber as PhoneNumber','portaluserlogoninfo.AccountId as AccountId')
                 ->get();
 
             if ($users->isEmpty()) {
@@ -73,7 +70,6 @@ class PermissionManagement extends Controller
             ], 500);
         }
     }
-
     public function getAllRolesForUser(Request $request)
     {
         $request->validate([
@@ -88,7 +84,7 @@ class PermissionManagement extends Controller
                 ->where('Email', $user_email)
                 ->first();
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found',
@@ -106,7 +102,7 @@ class PermissionManagement extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'No roles found for this user',
-                    'data' => [],
+                    'data' => []
                 ], 404);
             }
 
@@ -143,7 +139,7 @@ class PermissionManagement extends Controller
                 ->where('Email', $user_email)
                 ->first();
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found',
@@ -155,7 +151,7 @@ class PermissionManagement extends Controller
                 ->where('Id', $role_id)
                 ->first();
 
-            if (! $role) {
+            if (!$role) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Role not found',
@@ -164,7 +160,7 @@ class PermissionManagement extends Controller
 
             // Get default permissions for this role type
             $defaultPermissions = $this->getDefaultPermissionsForRole($role->RoleName);
-            $defaultPermissions = array_filter($defaultPermissions, function ($value) {
+            $defaultPermissions = array_filter($defaultPermissions, function($value) {
                 return $value === true;
             });
 
@@ -180,7 +176,7 @@ class PermissionManagement extends Controller
                 foreach ($defaultPermissions as $permName => $value) {
                     // Check if this permission exists in the user's permissions
                     if (property_exists($userPermissions, $permName)) {
-                        $finalPermissions[$permName] = (bool) $userPermissions->$permName;
+                        $finalPermissions[$permName] = (bool)$userPermissions->$permName;
                     }
                 }
             }
@@ -204,12 +200,11 @@ class PermissionManagement extends Controller
                 'success' => true,
                 'message' => 'User permissions fetched successfully',
                 'data' => $grantedPermissions,
-                'all_permissions' => $finalPermissions,
+                'all_permissions' => $finalPermissions
             ], 200);
 
         } catch (\Throwable $th) {
             Log::error('Error fetching user permissions:', ['error' => $th->getMessage()]);
-
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while fetching user permissions',
@@ -233,7 +228,7 @@ class PermissionManagement extends Controller
                 ->where('Id', $role_id)
                 ->first();
 
-            if (! $role) {
+            if (!$role) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Role not found',
@@ -244,7 +239,7 @@ class PermissionManagement extends Controller
             $defaultPermissions = $this->getDefaultPermissionsForRole($role->RoleName);
 
             // Filter out permissions that are set to false
-            $grantedPermissions = array_filter($defaultPermissions, function ($value) {
+            $grantedPermissions = array_filter($defaultPermissions, function($value) {
                 return $value === true;
             });
 
@@ -258,12 +253,11 @@ class PermissionManagement extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Role permissions fetched successfully',
-                'data' => $grantedPermissions,
+                'data' => $grantedPermissions
             ], 200);
 
         } catch (\Throwable $th) {
             Log::error('Error fetching Role permissions:', ['error' => $th->getMessage()]);
-
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while fetching Role permissions',
@@ -275,7 +269,7 @@ class PermissionManagement extends Controller
 
     public function modifyUserPermissions(Request $request)
     {
-        Log::info('began');
+        Log::info("began");
         $request->validate([
             'admin_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
             'role_id' => 'required|integer',
@@ -283,11 +277,11 @@ class PermissionManagement extends Controller
             'permissions' => 'required|array',
         ]);
 
-        Log::info('Validation passed', [
+        Log::info("Validation passed", [
             'admin_email' => $request->admin_email,
             'role_id' => $request->role_id,
             'user_email' => $request->user_email,
-            'permissions' => $request->permissions,
+            'permissions' => $request->permissions
         ]);
 
         $role_id = $request->role_id;
@@ -297,41 +291,39 @@ class PermissionManagement extends Controller
 
         try {
             // Get user ID using email
-            Log::info('Fetching user by email: '.$user_email);
+            Log::info("Fetching user by email: " . $user_email);
             $user = $this->bk_db->table('portaluserlogoninfo')
                 ->where('Email', $user_email)
                 ->first();
 
-            Log::info('Fetching admin by email: '.$admin_email);
+            Log::info("Fetching admin by email: " . $admin_email);
             $user_making_request = $this->bk_db->table('portaluserlogoninfo')
                 ->where('Email', $admin_email)
                 ->first();
 
-            if (! $user) {
-                Log::error('User not found: '.$user_email);
-
+            if (!$user) {
+                Log::error("User not found: " . $user_email);
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found',
                 ], 404);
             }
 
-            if (! $user_making_request) {
-                Log::error('Admin user not found: '.$admin_email);
-
+            if (!$user_making_request) {
+                Log::error("Admin user not found: " . $admin_email);
                 return response()->json([
                     'success' => false,
                     'message' => 'Admin user not found',
                 ], 404);
             }
 
-            Log::info('Users good', [
+            Log::info("Users good", [
                 'user_id' => $user->Id,
-                'admin_id' => $user_making_request->Id,
+                'admin_id' => $user_making_request->Id
             ]);
 
             // Check if user role permission record exists
-            Log::info('Checking if user role permission exists for role: '.$role_id.' and user: '.$user->Id);
+            Log::info("Checking if user role permission exists for role: " . $role_id . " and user: " . $user->Id);
             $userRolePermission = $this->bk_db->table('portaluserrolepermissions')
                 ->where('Role', $role_id)
                 ->where('User', $user->Id)
@@ -350,23 +342,22 @@ class PermissionManagement extends Controller
                 $permissionRecord[$permissionName] = $value;
             }
 
-            if (! $userRolePermission) {
-                Log::info('Creating new user role permission record');
+            if (!$userRolePermission) {
+                Log::info("Creating new user role permission record");
                 $permissionRecord['created_on'] = Carbon::now();
                 $userRolePermissionId = $this->bk_db->table('portaluserrolepermissions')
                     ->insertGetId($permissionRecord);
-                Log::info('New permission record created with ID: '.$userRolePermissionId);
+                Log::info("New permission record created with ID: " . $userRolePermissionId);
             } else {
-                Log::info('Updating existing user role permission record: '.$userRolePermission->Id);
+                Log::info("Updating existing user role permission record: " . $userRolePermission->Id);
                 // Update existing permissions
                 $this->bk_db->table('portaluserrolepermissions')
                     ->where('Id', $userRolePermission->Id)
                     ->update($permissionRecord);
-                Log::info('Permission record updated successfully');
+                Log::info("Permission record updated successfully");
             }
 
-            Log::info('User permissions modified successfully');
-
+            Log::info("User permissions modified successfully");
             return response()->json([
                 'success' => true,
                 'message' => 'User permissions modified successfully',
@@ -375,14 +366,13 @@ class PermissionManagement extends Controller
         } catch (\Throwable $th) {
             Log::error('Error modifying user permissions:', ['error' => $th->getMessage()]);
             Log::error('Error stack trace:', ['trace' => $th->getTraceAsString()]);
-            Log::error('User email that caused error: '.$user_email);
-
+            Log::error('User email that caused error: ' . $user_email);
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while modifying user permissions',
                 'error' => $th->getMessage(),
                 'line' => $th->getLine(),
-                'user_email_provided' => $user_email,
+                'user_email_provided' => $user_email
             ], 500);
         }
     }
@@ -392,7 +382,7 @@ class PermissionManagement extends Controller
         $request->validate([
             'admin_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
             'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
-            'role_id' => 'required|integer|exists:bk_db.roles,Id',
+            'role_id' => 'required|integer|exists:bk_db.roles,Id'
         ]);
 
         try {
@@ -403,11 +393,11 @@ class PermissionManagement extends Controller
                 ->where('Email', $request->admin_email)
                 ->first();
 
-            if (! $admin) {
+            if (!$admin) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Admin user not found',
-                    'data' => null,
+                    'data' => null
                 ], 404);
             }
 
@@ -416,11 +406,11 @@ class PermissionManagement extends Controller
                 ->where('Email', $request->user_email)
                 ->first();
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found',
-                    'data' => null,
+                    'data' => null
                 ], 404);
             }
 
@@ -429,11 +419,11 @@ class PermissionManagement extends Controller
                 ->where('Id', $request->role_id)
                 ->first();
 
-            if (! $role) {
+            if (!$role) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Role not found',
-                    'data' => null,
+                    'data' => null
                 ], 404);
             }
 
@@ -443,7 +433,7 @@ class PermissionManagement extends Controller
                 ->where('Role', $request->role_id)
                 ->first();
 
-            if (! $existingUserRole) {
+            if (!$existingUserRole) {
                 // Add role to user
                 $this->bk_db->table('userroles')->insert([
                     'User' => $user->Id,
@@ -451,7 +441,7 @@ class PermissionManagement extends Controller
                     'created_by' => $admin->Id,
                     'created_on' => Carbon::now(),
                     'altered_by' => $admin->Id,
-                    'dola' => Carbon::now(),
+                    'dola' => Carbon::now()
                 ]);
             }
 
@@ -492,8 +482,8 @@ class PermissionManagement extends Controller
                 'data' => [
                     'user_id' => $user->Id,
                     'role_id' => $request->role_id,
-                    'role_name' => $role->RoleName,
-                ],
+                    'role_name' => $role->RoleName
+                ]
             ], 200);
 
         } catch (\Throwable $th) {
@@ -512,76 +502,75 @@ class PermissionManagement extends Controller
     public function updateDefaultPermissions($user_id, $role_id)
     {
         // $user = User::find($user_id);
-        try {
-            $user = $this->bk_db->table('portaluserlogoninfo')
-                ->where('Id', $user_id)
-                ->first();
+    try {
+        $user = $this->bk_db->table('portaluserlogoninfo')
+        ->where('Id', $user_id)
+        ->first();
 
-            // $role = Role::find($role_id);
+        // $role = Role::find($role_id);
 
-            $role = $this->bk_db->table('roles')
-                ->where('Id', $role_id)
-                ->first();
+        $role = $this->bk_db->table('roles')
+        ->where('Id', $role_id)
+        ->first();
 
-            if (! $user || ! $role) {
-                return response()->json(['success' => false, 'message' => 'User or Role not found', 'data' => null], 404);
-            }
-
-            // Assign default permissions based on role
-            $roleName = strtolower(str_replace(' ', '', $role->RoleName));
-            $permissions = $this->getDefaultPermissionsForRole($roleName);
-            // Log::info('Default permissions for role: ' . $role->RoleName, ['permissions' => $permissions]);
-
-            // // Store permissions in the database
-            // $userRolePermission = UserRolePermission::updateOrCreate(
-            //     ['user_id' => $user_id, 'role_id' => $role_id],
-            //     $permissions
-            // );
-
-            // Delete existing permissions for the user
-            $this->bk_db->table('portaluserrolepermissions')
-                ->where('User', $user_id)
-                ->delete();
-
-            // Prepare the permission record
-            $permissionRecord = [
-                'Role' => $role_id,
-                'User' => $user_id,
-                // 'created_by' => $user_id, // or another appropriate ID
-                'created_on' => Carbon::now(),
-                // 'altered_by' => null,
-                // 'dola' => now(),
-            ];
-
-            // Add each permission field
-            foreach ($permissions as $permissionName => $value) {
-                $permissionRecord[$permissionName] = $value;
-            }
-
-            // Insert the new permission record
-            $insertPermission = $this->bk_db->table('portaluserrolepermissions')
-                ->insert($permissionRecord);
-
-            $this->bk_db->commit();
-            Log::info('Permissions updated successfully:', ['permissions' => $permissionRecord]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Permissions updated successfully',
-                'data' => $permissionRecord,
-            ]);
-
-        } catch (\Throwable $th) {
-            $this->bk_db->rollBack();
-            Log::error('Error updating permissions:', ['error' => $th->getMessage()]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred while updating permissions',
-                'error' => $th->getMessage(),
-                'line' => $th->getLine(),
-            ], 500);
+        if (!$user || !$role) {
+            return response()->json(['success' => false, 'message' => 'User or Role not found','data' => null], 404);
         }
+
+        // Assign default permissions based on role
+        $roleName = strtolower(str_replace(' ', '', $role->RoleName));
+        $permissions = $this->getDefaultPermissionsForRole($roleName);
+        // Log::info('Default permissions for role: ' . $role->RoleName, ['permissions' => $permissions]);
+
+        // // Store permissions in the database
+        // $userRolePermission = UserRolePermission::updateOrCreate(
+        //     ['user_id' => $user_id, 'role_id' => $role_id],
+        //     $permissions
+        // );
+
+          // Delete existing permissions for the user
+          $this->bk_db->table('portaluserrolepermissions')
+          ->where('User', $user_id)
+          ->delete();
+
+        // Prepare the permission record
+        $permissionRecord = [
+            'Role' => $role_id,
+            'User' => $user_id,
+            // 'created_by' => $user_id, // or another appropriate ID
+            'created_on' => Carbon::now(),
+            // 'altered_by' => null,
+            // 'dola' => now(),
+        ];
+
+        // Add each permission field
+        foreach ($permissions as $permissionName => $value) {
+            $permissionRecord[$permissionName] = $value;
+        }
+
+        // Insert the new permission record
+        $insertPermission = $this->bk_db->table('portaluserrolepermissions')
+            ->insert($permissionRecord);
+
+        $this->bk_db->commit();
+        Log::info('Permissions updated successfully:', ['permissions' => $permissionRecord]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Permissions updated successfully',
+            'data' =>  $permissionRecord,
+        ]);
+
+    } catch (\Throwable $th) {
+        $this->bk_db->rollBack();
+        Log::error('Error updating permissions:', ['error' => $th->getMessage()]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred while updating permissions',
+            'error' => $th->getMessage(),
+            'line' => $th->getLine(),
+        ], 500);
+    }
 
     }
 
@@ -596,7 +585,7 @@ class PermissionManagement extends Controller
             'CanAccessReturnScreen' => false,
             'CanAccessBarbellScreen' => false,
 
-            // Research Assistant
+            //Research Assistant
             'CanAccessResearchAssistant' => false,
             'CanAccessResearchAssistantTools' => false,
             // Bond Stats
@@ -636,6 +625,7 @@ class PermissionManagement extends Controller
             'CanAccessHelp' => false,
             'CanAccessFAQ' => false,
 
+
             // Admin Features
             'CanManageAccounts' => false,
             'CanViewUserAccounts' => false,
@@ -668,7 +658,7 @@ class PermissionManagement extends Controller
                     'CanAccessReturnScreen' => true,
                     'CanAccessBarbellScreen' => true,
 
-                    // Research Assistant
+                    //Research Assistant
                     'CanAccessResearchAssistant' => true,
                     'CanAccessResearchAssistantTools' => true,
 
@@ -676,6 +666,7 @@ class PermissionManagement extends Controller
                     'CanAccessBondStats' => true,
                     'CanViewBondStats' => true,
                     'CanAccessRiskMetrics' => true,
+
 
                     // Portfolio
                     'CanManagePortfolio' => true,
@@ -705,7 +696,7 @@ class PermissionManagement extends Controller
                     'CanPurchaseSubscription' => true,
                     'CanReceiveNotifications' => true,
                     'CanAccessHelp' => true,
-                    'CanAccessFAQ' => true,
+                    'CanAccessFAQ' => true
                 ]);
                 break;
 
@@ -718,4 +709,8 @@ class PermissionManagement extends Controller
 
         return $permissions;
     }
+
+
 }
+
+

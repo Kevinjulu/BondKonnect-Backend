@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers\V1\Bonds;
 
-use App\Http\Controllers\Controller;
-use App\Http\Controllers\V1\Defaults\CommunicationManagement;
-use App\Http\Controllers\V1\Defaults\StandardFunctions;
-use App\Http\Controllers\V1\Notifications\NotificationController;
 use Carbon\Carbon;
+use League\Csv\Reader;
 use Illuminate\Http\Request;
+use App\Events\SendEmailEvent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
-use League\Csv\Reader;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use App\Http\Controllers\V1\Defaults\StandardFunctions;
+use App\Http\Controllers\V1\Defaults\CommunicationManagement;
+use App\Http\Controllers\V1\Notifications\NotificationController;
 
 class BondsController extends Controller
 {
@@ -45,7 +46,7 @@ class BondsController extends Controller
             'Graph Table' => ['Date', 'Year', 'Spot rate', 'Nse rate', 'Upper band', 'Lower band'],
             'OBI Table' => ['Date', 'Quoted Yield', 'Spot Yield', 'Dirty Price', 'OBI (K) Index', 'Coupon', 'Duration', 'Expected Return', 'DV01', 'Expected Shortfall', 'OBI TR'],
             'YTM Table' => ['Date', 'taylor Rule', 'Ceiling', 'Floor', 'lamda1', 'lamda2', 'Alpha', 'Beta1', 'Beta2', 'Beta3', 'CBR', 'Rate Projection', 'Inflation', 'Level', 'Slope', 'Carvature'],
-            'Primary Market Table' => ['Bond Issues', 'Pricing Method', 'DTM / WAL', 'Day-Count', '1st coupon date', '2nd coupon date', 'Spot Rate (%)', 'Par Yield (%)'],
+            'Primary Market Table' => [ 'Bond Issues', 'Pricing Method', 'DTM / WAL', 'Day-Count', '1st coupon date', '2nd coupon date', 'Spot Rate (%)', 'Par Yield (%)' ],
         ];
 
         $responseMessages = [];
@@ -60,7 +61,7 @@ class BondsController extends Controller
         }
 
         if ($request->boolean('IsObiTable')) {
-            $this->processTable($records, 'OBI Table', $headersMap['OBI Table'], 'obi_table', $responseMessages);
+            $this->processTable($records, 'OBI Table', $headersMap['OBI Table'],'obi_table', $responseMessages);
         }
 
         if ($request->boolean('IsYtm')) {
@@ -70,6 +71,7 @@ class BondsController extends Controller
         if ($request->boolean('IsPrimaryMarketTable')) {
             $this->processTable($records, 'Primary Market Table', $headersMap['Primary Market Table'], 'primary_market_table', $responseMessages);
         }
+
 
         return response()->json([
             'message' => 'CSV uploaded and processed successfully',
@@ -82,7 +84,6 @@ class BondsController extends Controller
         $recordArray = iterator_to_array($records);
         if (empty($recordArray)) {
             $responseMessages[] = "{$tableType}: No records to process.";
-
             return;
         }
 
@@ -91,14 +92,13 @@ class BondsController extends Controller
         // Validate CSV headers
         if ($csvHeaders !== $expectedHeaders) {
             $responseMessages[] = "{$tableType}: Invalid headers.";
-
             return;
         }
 
         // Insert records into the database
         foreach ($recordArray as $row) {
             $filteredRow = array_combine(
-                array_map(fn ($header) => str_replace(' ', '', strtolower($header)), $expectedHeaders),
+                array_map(fn($header) => str_replace(' ', '', strtolower($header)), $expectedHeaders),
                 $row
             );
 
@@ -108,15 +108,15 @@ class BondsController extends Controller
         $responseMessages[] = "{$tableType}: Successfully inserted records.";
     }
 
-    // Bond Screens Data
+    //Bond Screens Data
     public function getTotalReturnScreen(Request $request)
     {
         try {
-            $bonds = $this->bk_db->table('statstable')
-                ->where('Last91Days', '!=', 0)
-                ->orderBy('Last91Days', 'desc')
-                ->limit(5)
-                ->get();
+        $bonds =  $this->bk_db->table('statstable')
+            ->where('Last91Days', '!=', 0)
+            ->orderBy('Last91Days', 'desc')
+            ->limit(5)
+            ->get();
 
             return response()->json($bonds, 200);
         } catch (\Exception $e) {
@@ -130,38 +130,38 @@ class BondsController extends Controller
             // Get target duration from request body
             $targetDuration = $request->input('targetDuration');
 
-            // fetch table params for inflation and ytmTr
+            //fetch table params for inflation and ytmTr
             $tableParams = $this->bk_db->table('tableparams')->first();
             $inflation = $tableParams->Inflation;
             $ytmTr = $tableParams->YtmTr;
-            Log::info('inflation '.$inflation);
+            Log::info("inflation ".$inflation);
 
             $rateOutlook = $ytmTr > $inflation ? ceil($ytmTr / 0.0025) * 0.0025 : $inflation;
 
-            $averageOTR = round($this->bk_db->table('statstable')->where('Otr', 'OTR')->avg('SpotYield') * 100, 4);
+            $averageOTR = round($this->bk_db->table('statstable')->where('Otr', 'OTR')->avg('SpotYield') *100,4) ;
 
             $averageYield = $this->bk_db->table('statstable')
                 ->where('Filter1', '>=', 2)
-                ->avg('Coupon');
+                ->avg('Coupon') ;
 
-            $averageYield = round($averageYield, 4);
-            $averageLast91Days = round($this->bk_db->table('statstable')->where('Otr', 'OTR')->avg('Last91Days'));
-            $averageCoupon = round($this->bk_db->table('statstable')->where('Otr', 'OTR')->avg('Coupon'), 4);
-            $averageDTMYrs = round($this->bk_db->table('statstable')->where('Otr', 'OTR')->avg('DtmYrs'), 4);
-            $averageDirtyPrice = round($this->bk_db->table('statstable')->where('Otr', 'OTR')->avg('DirtyPrice'), 4);
-            $averageDuration = round($this->bk_db->table('statstable')->where('Otr', 'OTR')->avg('Duration'), 4);
-            $averageMDuration = round($this->bk_db->table('statstable')->where('Otr', 'OTR')->avg('MDuration'), 4);
-            $averageConvexity = round($this->bk_db->table('statstable')->where('Otr', 'OTR')->avg('Convexity'), 2);
-            $averageExpectedReturn = round($this->bk_db->table('statstable')->where('Otr', 'OTR')->avg('ExpectedReturn'), 2);
-            $averageExpectedShortfall = round($this->bk_db->table('statstable')->where('Otr', 'OTR')->avg('ExpectedShortfall'), 2) * 100;
-            $averageDV01 = round($this->bk_db->table('statstable')->where('Otr', 'OTR')->avg('DV01'), 4);
+            $averageYield = round($averageYield,4);
+            $averageLast91Days = round($this->bk_db->table('statstable')->where('Otr','OTR')->avg('Last91Days'));
+            $averageCoupon = round($this->bk_db->table('statstable')->where('Otr','OTR')->avg('Coupon'),4);
+            $averageDTMYrs = round($this->bk_db->table('statstable')->where('Otr','OTR')->avg('DtmYrs'), 4);
+            $averageDirtyPrice = round($this->bk_db->table('statstable')->where('Otr','OTR')->avg('DirtyPrice'), 4);
+            $averageDuration = round($this->bk_db->table('statstable')->where('Otr','OTR')->avg('Duration'), 4);
+            $averageMDuration = round($this->bk_db->table('statstable')->where('Otr','OTR')->avg('MDuration'), 4);
+            $averageConvexity = round($this->bk_db->table('statstable')->where('Otr','OTR')->avg('Convexity'), 2);
+            $averageExpectedReturn = round($this->bk_db->table('statstable')->where('Otr','OTR')->avg('ExpectedReturn'), 2);
+            $averageExpectedShortfall = round($this->bk_db->table('statstable')->where('Otr','OTR')->avg('ExpectedShortfall'), 2) * 100;
+            $averageDV01 = round($this->bk_db->table('statstable')->where('Otr','OTR')->avg('DV01'), 4);
 
             // Use provided target duration or fall back to average
             // If targetDuration is provided, use it; otherwise use the calculated average
-            $userMDuration = $targetDuration !== null ? (float) $targetDuration * -1 : $averageMDuration * -1;
+            $userMDuration = $targetDuration !== null ? (float)$targetDuration * -1 : $averageMDuration * -1;
 
-            Log::info('Target Duration: '.($targetDuration ?? 'null'));
-            Log::info('User M Duration: '.$userMDuration);
+            Log::info("Target Duration: " . ($targetDuration ?? 'null'));
+            Log::info("User M Duration: " . $userMDuration);
 
             if (empty($userMDuration) || $userMDuration == 0) {
                 $bonds = [];
@@ -194,11 +194,10 @@ class BondsController extends Controller
                 'averages' => $allAverages,
                 'rateOutlook' => $rateOutlook,
                 'targetDuration' => $targetDuration ?? $averageMDuration,
-                'data' => $bonds,
+                'data' => $bonds
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Duration Screen Error: '.$e->getMessage());
-
+            Log::error('Duration Screen Error: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to fetch total duration screen bonds', 'message' => $e->getMessage()], 404);
         }
     }
@@ -206,28 +205,28 @@ class BondsController extends Controller
     public function getBarbellAndBullet()
     {
         try {
-            $bonds = $this->bk_db->table('statstable')
+            $bonds =  $this->bk_db->table('statstable')
                 ->where('Last91Days', '!=', 0)
                 ->orderBy('Last91Days', 'desc')
                 ->limit(5)
                 ->get();
 
-            $short = $bonds->sortByDesc(function ($bond) {
+            $short = $bonds->sortByDesc(function($bond) {
                 return $bond->MDuration;
             })->take(1)->values()->toArray();
 
-            $long = $bonds->sortByDesc(function ($bond) {
+            $long = $bonds->sortByDesc(function($bond) {
                 return $bond->MDuration;
             })->skip(4)->take(1)->values()->toArray();
 
-            $bullet = $bonds->sortByDesc(function ($bond) {
+            $bullet = $bonds->sortByDesc(function($bond) {
                 return $bond->MDuration;
             })->skip(1)->take(3)->values()->toArray();
 
             return response()->json([
                 'short' => $short,
                 'long' => $long,
-                'bullet' => $bullet,
+                'bullet' => $bullet
             ], 200);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => 'Failed to fetch barbell and bullet data', 'message' => $e->getMessage()], 404);
@@ -246,11 +245,11 @@ class BondsController extends Controller
         }
     }
 
-    // Portfolio Management
+    //Portfolio Management
 
     public function addNewPortfolio(Request $request)
     {
-        Log::info('Request: '.json_encode($request->all()));
+        Log::info('Request: ' . json_encode($request->all()));
         $request->validate([
             'portfolio_name' => 'required|string|max:255',
             'value_date' => 'required|date',
@@ -274,20 +273,20 @@ class BondsController extends Controller
             'bonds.*.realized_pnl' => 'required|string',
             'bonds.*.unrealized_pnl' => 'required|string',
             'bonds.*.one_yr_total_return' => 'required|numeric',
-            'bonds.*.portfolio_value' => 'required|string',
+            'bonds.*.portfolio_value' => 'required|string'
         ]);
 
         try {
             $this->bk_db->beginTransaction();
 
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($request->user_email);
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -298,7 +297,7 @@ class BondsController extends Controller
                 'Description' => $request->description,
                 'UserId' => $user->Id,
                 'created_by' => $user->Id,
-                'created_on' => Carbon::now(),
+                'created_on' => Carbon::now()
             ]);
 
             // Add bonds to portfolio data
@@ -307,7 +306,7 @@ class BondsController extends Controller
                     ->where('Id', $bond['bond_id'])
                     ->first();
 
-                if (! $bondData) {
+                if (!$bondData) {
                     continue;
                 }
 
@@ -341,7 +340,7 @@ class BondsController extends Controller
                     'ExpectedShortfall' => $bondData->ExpectedShortfall,
                     'DirtyPrice' => $bondData->DirtyPrice,
                     'created_by' => $user->Id,
-                    'created_on' => Carbon::now(),
+                    'created_on' => Carbon::now()
                 ]);
             }
 
@@ -351,13 +350,12 @@ class BondsController extends Controller
                 'success' => true,
                 'message' => 'Portfolio created successfully.',
                 'data' => [
-                    'portfolio_id' => $portfolioId,
-                ],
+                    'portfolio_id' => $portfolioId
+                ]
             ]);
 
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred creating portfolio.',
@@ -368,30 +366,29 @@ class BondsController extends Controller
         }
     }
 
-    public function manageBondsInPortfolio(Request $request)
-    {
+    public function manageBondsInPortfolio(Request $request){
 
         $request->validate([
             'bond_id' => 'required|integer|exists:bk_db.statstable,Id',
             'action' => 'required|string|in:add,remove',
-            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email'
         ]);
 
         $bond_id = $request->bond_id;
         $user_email = $request->user_email;
 
-        try {
+        try{
             // Start transaction
             $this->bk_db->beginTransaction();
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($request->user_email);
             $bond = $this->bk_db->table('statstable')->where('Id', $request->bond_id)->first();
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -406,7 +403,7 @@ class BondsController extends Controller
                     return response()->json([
                         'success' => false,
                         'message' => 'Bond already exists in portfolio.',
-                        'data' => null,
+                        'data' => null
                     ]);
                 }
 
@@ -415,7 +412,7 @@ class BondsController extends Controller
                     'BondId' => $bond_id,
                     'User' => $user->Id,
                     'created_on' => Carbon::now(),
-                    'created_by' => $user->Id,
+                    'created_by' => $user->Id
                 ]);
 
                 // Commit transaction
@@ -424,7 +421,7 @@ class BondsController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Bond added to portfolio successfully.',
-                    'data' => null,
+                    'data' => null
                 ]);
 
             } elseif ($request->action == 'remove') {
@@ -434,11 +431,11 @@ class BondsController extends Controller
                     ->where('User', $user->Id)
                     ->first();
 
-                if (! $existingBondInPortfolio) {
+                if (!$existingBondInPortfolio) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Bond does not exist in portfolio.',
-                        'data' => null,
+                        'data' => null
                     ]);
                 }
 
@@ -451,19 +448,18 @@ class BondsController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Bond removed from portfolio successfully.',
-                    'data' => null,
+                    'data' => null
                 ]);
             } else {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid action.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred adding bond to portfolio.',
@@ -474,31 +470,30 @@ class BondsController extends Controller
         }
     }
 
-    public function getUserPortfolio(Request $request)
-    {
+    public function getUserPortfolio(Request $request){
         $request->validate([
-            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email'
         ]);
 
         $user_email = $request->user_email;
 
-        try {
-            $stdfns = new StandardFunctions;
+        try{
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($request->user_email);
             $portfolio = $this->bk_db->table('portfolio')->where('User', $user->Id)->get()->toArray();
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Bonds in portfolio fetched successfully.',
-                'data' => $portfolio,
+                'data' => $portfolio
             ]);
         } catch (\Throwable $th) {
             return response()->json([
@@ -515,18 +510,18 @@ class BondsController extends Controller
     {
         // Log::info('Request: ' . json_encode($request->all()));
         $request->validate([
-            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email'
         ]);
 
         try {
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($request->user_email);
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -559,7 +554,7 @@ class BondsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Portfolios fetched successfully.',
-                'data' => $portfolios,
+                'data' => $portfolios
             ]);
 
         } catch (\Throwable $th) {
@@ -599,29 +594,29 @@ class BondsController extends Controller
             'bonds.*.realized_pnl' => 'required|string',
             'bonds.*.unrealized_pnl' => 'required|string',
             'bonds.*.one_yr_total_return' => 'required|numeric',
-            'bonds.*.portfolio_value' => 'required|string',
+            'bonds.*.portfolio_value' => 'required|string'
         ]);
 
         try {
             $this->bk_db->beginTransaction();
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($request->user_email);
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
             // Update portfolio details
             $portfolio = $this->bk_db->table('portfolio')->where('Id', $request->portfolio_id)->first();
-            if (! $portfolio) {
+            if (!$portfolio) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Portfolio not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -630,7 +625,7 @@ class BondsController extends Controller
                 'ValueDate' => $request->value_date,
                 'Description' => $request->description,
                 'dola' => Carbon::now(),
-                'altered_by' => $user->Id,
+                'altered_by' => $user->Id
             ]);
 
             // Delete existing bonds in portfoliodata for this portfolio
@@ -639,7 +634,7 @@ class BondsController extends Controller
             // Add updated bonds to portfoliodata
             foreach ($request->bonds as $bond) {
                 $bondData = $this->bk_db->table('statstable')->where('Id', $bond['bond_id'])->first();
-                if (! $bondData) {
+                if (!$bondData) {
                     continue;
                 }
                 $this->bk_db->table('portfoliodata')->insert([
@@ -672,7 +667,7 @@ class BondsController extends Controller
                     'ExpectedShortfall' => $bondData->ExpectedShortfall,
                     'DirtyPrice' => $bondData->DirtyPrice,
                     'created_by' => $user->Id,
-                    'created_on' => Carbon::now(),
+                    'created_on' => Carbon::now()
                     // 'dola' => Carbon::now(),
                     // 'altered_by' => $user->Id
                 ]);
@@ -684,12 +679,11 @@ class BondsController extends Controller
                 'success' => true,
                 'message' => 'Portfolio updated successfully.',
                 'data' => [
-                    'portfolio_id' => $request->portfolio_id,
-                ],
+                    'portfolio_id' => $request->portfolio_id
+                ]
             ]);
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred updating portfolio.',
@@ -703,7 +697,7 @@ class BondsController extends Controller
     public function exportPortfolioExcel(Request $request)
     {
         $request->validate([
-            'portfolio_id' => 'required|integer|exists:bk_db.portfolio,Id',
+            'portfolio_id' => 'required|integer|exists:bk_db.portfolio,Id'
         ]);
         try {
             $portfolioId = $request->portfolio_id;
@@ -719,7 +713,7 @@ class BondsController extends Controller
                 ->where('Id', $portfolioId)
                 ->first();
 
-            if (! $portfolio) {
+            if (!$portfolio) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Portfolio not found.',
@@ -739,14 +733,14 @@ class BondsController extends Controller
             }
 
             // Create Excel
-            $spreadsheet = new Spreadsheet;
+            $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
             $sheet->setTitle('Portfolio');
 
             // Set header row
-            $sheet->setCellValue('A1', 'Portfolio: '.$portfolio->Name);
-            $sheet->setCellValue('A2', 'Value Date: '.$portfolio->ValueDate);
-            $sheet->setCellValue('A3', 'Description: '.$portfolio->Description);
+            $sheet->setCellValue('A1', 'Portfolio: ' . $portfolio->Name);
+            $sheet->setCellValue('A2', 'Value Date: ' . $portfolio->ValueDate);
+            $sheet->setCellValue('A3', 'Description: ' . $portfolio->Description);
 
             // Create header row for bonds table
             $headers = [
@@ -755,43 +749,43 @@ class BondsController extends Controller
                 'Selling WAP', 'Face Value Sales', 'Face Value Balance', 'Closing Price',
                 'Coupon NET', 'Next Coupon Days', 'Realized P&L', 'Unrealized P&L',
                 'One Year Total Return', 'Coupon', 'Duration', 'Modified Duration',
-                'DV01', 'Expected Shortfall', 'Spot YTM', 'Dirty Price', 'Portfolio Value',
+                'DV01', 'Expected Shortfall', 'Spot YTM', 'Dirty Price', 'Portfolio Value'
             ];
 
             foreach (array_values($headers) as $colIndex => $header) {
                 $column = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex + 1);
-                $sheet->setCellValue($column.'5', $header);
+                $sheet->setCellValue($column . '5', $header);
             }
 
             // Add bond data
             $rowIndex = 6;
             foreach ($bonds as $bond) {
                 $colIndex = 1;
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->BondIssueNo);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->Type);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->BuyingDate);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->BuyingPrice);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->BuyingWAP);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->FaceValueBuys);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->SellingDate ?? '');
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->SellingPrice ?? '');
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->SellingWAP ?? '');
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->FaceValueSales ?? '');
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->FaceValueBAL);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->ClosingPrice);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->CouponNET);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->NextCpnDays);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->RealizedPNL);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->UnrealizedPNL);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->OneYrTotalReturn);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->Coupon);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->Duration);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->MDuration);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->Dv01);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->ExpectedShortfall);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->SpotYTM);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->DirtyPrice);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++).$rowIndex, $bond->PortfolioValue);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->BondIssueNo);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->Type);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->BuyingDate);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->BuyingPrice);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->BuyingWAP);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->FaceValueBuys);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->SellingDate ?? '');
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->SellingPrice ?? '');
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->SellingWAP ?? '');
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->FaceValueSales ?? '');
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->FaceValueBAL);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->ClosingPrice);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->CouponNET);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->NextCpnDays);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->RealizedPNL);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->UnrealizedPNL);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->OneYrTotalReturn);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->Coupon);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->Duration);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->MDuration);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->Dv01);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->ExpectedShortfall);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->SpotYTM);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->DirtyPrice);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex++) . $rowIndex, $bond->PortfolioValue);
                 $rowIndex++;
             }
 
@@ -802,7 +796,7 @@ class BondsController extends Controller
 
             // Create writer
             $writer = new Xlsx($spreadsheet);
-            $fileName = 'portfolio_'.$request->portfolio_id.'_'.date('Y-m-d').'.xlsx';
+            $fileName = 'portfolio_' . $request->portfolio_id . '_' . date('Y-m-d') . '.xlsx';
             $tempFile = tempnam(sys_get_temp_dir(), 'portfolio_');
             $writer->save($tempFile);
 
@@ -821,24 +815,24 @@ class BondsController extends Controller
         }
     }
 
-    // Quotes Management
+    //Quotes Management
     private function calculateIndicativeRange($bondId)
-    {
-        // Get bond details from statstable
-        $bond = $this->bk_db->table('statstable')->where('Id', $bondId)->first();
+{
+    // Get bond details from statstable
+    $bond = $this->bk_db->table('statstable')->where('Id', $bondId)->first();
 
-        if (! $bond || ! isset($bond->spotYTM) || ! isset($bond->Spread)) {
-            return 'N/A';
-        }
-
-        $spotYTM = floatval($bond->spotYTM);
-        $spread = floatval($bond->Spread);
-
-        $lowerBound = max(0, round(($spotYTM - $spread) * 100, 2));
-        $upperBound = round(($spotYTM + $spread) * 100, 2);
-
-        return number_format($lowerBound, 2).'% - '.number_format($upperBound, 2).'%';
+    if (!$bond || !isset($bond->spotYTM) || !isset($bond->Spread)) {
+        return "N/A";
     }
+
+    $spotYTM = floatval($bond->spotYTM);
+    $spread = floatval($bond->Spread);
+
+    $lowerBound = max(0, round(($spotYTM - $spread) * 100, 2));
+    $upperBound = round(($spotYTM + $spread) * 100, 2);
+
+    return number_format($lowerBound, 2) . '% - ' . number_format($upperBound, 2) . '%';
+}
 
     public function createQuote(Request $request)
     {
@@ -854,9 +848,9 @@ class BondsController extends Controller
             'bid_amount' => 'required|numeric|required_if:IsBid,true',
             // 'face_value' => 'required|numeric',
             // 'settlement_date' => 'required|date',
-            // 'indicative_range' => 'required|string',
-            // 'indicative_lower' => 'required|numeric',
-            // 'indicative_higher'
+            //'indicative_range' => 'required|string',
+                // 'indicative_lower' => 'required|numeric',
+                // 'indicative_higher'
             'assigned_by' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
             // 'is_active' => 'required|boolean',
             // 'is_accepted' => 'required|boolean',
@@ -867,13 +861,14 @@ class BondsController extends Controller
             // 'consideration' => 'required|numeric',
             // 'viewing_party' => 'nullable|email|exists:bk_db.portaluserlogoninfo,Email',
 
+
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => $validator->errors()->first(),
-                'errors' => $validator->errors(),
+                'errors' => $validator->errors()
             ], 422);
         }
 
@@ -881,24 +876,24 @@ class BondsController extends Controller
             // Start transaction
             $this->bk_db->beginTransaction();
 
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($request->assigned_by);
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
             // Check if the bond exists
             $bond = $this->bk_db->table('statstable')->where('Id', $request->bond_id)->first();
-            if (! $bond) {
+            if (!$bond) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Bond not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -990,7 +985,7 @@ class BondsController extends Controller
             //     }
             // }
 
-            // TODO: Add notification and email FOR THOSE WHO HAVE SUBMITTED BID AND HAVE SUBSCRIBED TO NOTIFICATIONS TOO
+            //TODO: Add notification and email FOR THOSE WHO HAVE SUBMITTED BID AND HAVE SUBSCRIBED TO NOTIFICATIONS TOO
             // Commit transaction
             $this->bk_db->commit();
 
@@ -999,13 +994,12 @@ class BondsController extends Controller
                 'message' => 'Quote created successfully.',
                 'data' => [
                     'quote_id' => $quoteId,
-                    'placement_no' => $placement_no,
-                ],
+                    'placement_no' => $placement_no
+                ]
             ]);
 
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred creating quote.',
@@ -1015,18 +1009,16 @@ class BondsController extends Controller
             ]);
         }
     }
+    public function getUserQuotes(Request $request){
 
-    public function getUserQuotes(Request $request)
-    {
-
-        $request->validate([
-            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+       $request->validate([
+            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email'
         ]);
 
         $user_email = $request->user_email;
 
-        try {
-            $stdfns = new StandardFunctions;
+        try{
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($request->user_email);
             $quotes = $this->bk_db->table('quotebook')
                 ->join('statstable', 'quotebook.BondIssueNo', '=', 'statstable.Id')
@@ -1042,7 +1034,7 @@ class BondsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'User Quotes fetched successfully.',
-                'data' => $quotes,
+                'data' => $quotes
             ]);
         } catch (\Throwable $th) {
             return response()->json([
@@ -1056,15 +1048,14 @@ class BondsController extends Controller
 
     }
 
-    public function getQuotes(Request $request)
-    {
-        try {
+    public function getQuotes(Request $request){
+        try{
             $request->validate([
-                'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+                'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email'
             ]);
 
             $user_email = $request->user_email;
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($user_email);
 
             // Get all quotes with bond details and transactions
@@ -1081,12 +1072,12 @@ class BondsController extends Controller
                 ->orderBy('quotebook.OfferPrice', 'DESC')
                 ->orderBy('quotebook.BidPrice', 'DESC')
                 ->get()
-                ->map(function ($quote) {
+                ->map(function($quote) {
                     // Get transactions for this quote
                     $transactions = $this->bk_db->table('quotetransactions')
                         ->where('QuoteId', $quote->Id)
                         ->get()
-                        ->map(function ($transaction) {
+                        ->map(function($transaction) {
                             return [
                                 'id' => $transaction->Id,
                                 'transaction_no' => $transaction->TransactionNo,
@@ -1100,12 +1091,11 @@ class BondsController extends Controller
                                 'is_accepted' => $transaction->IsAccepted,
                                 'is_rejected' => $transaction->IsRejected,
                                 'is_delegated' => $transaction->IsDelegated,
-                                'created_on' => $transaction->created_on,
+                                'created_on' => $transaction->created_on
                             ];
                         });
 
                     $quote->transactions = $transactions;
-
                     return $quote;
                 });
 
@@ -1119,20 +1109,20 @@ class BondsController extends Controller
                     'portaluserlogoninfo.Email as AssignedBy',
                     DB::raw('CASE WHEN quotebook.IsBid = 1 THEN "Bid" ELSE "Offer" END as QuoteType')
                 )
-                ->where(function ($query) use ($user) {
+                ->where(function($query) use ($user) {
                     $query->where('quotebook.AssignedBy', $user->Id)
-                        ->orWhere('quotebook.ViewingParty', $user->Id);
+                          ->orWhere('quotebook.ViewingParty', $user->Id);
                 })
                 ->orderBy('statstable.BondIssueNo')
                 ->orderBy('quotebook.OfferPrice', 'DESC')
                 ->orderBy('quotebook.BidPrice', 'DESC')
                 ->get()
-                ->map(function ($quote) {
+                ->map(function($quote) {
                     // Get transactions for this quote
                     $transactions = $this->bk_db->table('quotetransactions')
                         ->where('QuoteId', $quote->Id)
                         ->get()
-                        ->map(function ($transaction) {
+                        ->map(function($transaction) {
                             return [
                                 'id' => $transaction->Id,
                                 'transaction_no' => $transaction->TransactionNo,
@@ -1146,12 +1136,11 @@ class BondsController extends Controller
                                 'is_accepted' => $transaction->IsAccepted,
                                 'is_rejected' => $transaction->IsRejected,
                                 'is_delegated' => $transaction->IsDelegated,
-                                'created_on' => $transaction->created_on,
+                                'created_on' => $transaction->created_on
                             ];
                         });
 
                     $quote->transactions = $transactions;
-
                     return $quote;
                 });
 
@@ -1170,12 +1159,12 @@ class BondsController extends Controller
                 ->orderBy('quotebook.OfferPrice', 'DESC')
                 ->orderBy('quotebook.BidPrice', 'DESC')
                 ->get()
-                ->map(function ($quote) {
+                ->map(function($quote) {
                     // Get transactions for this quote
                     $transactions = $this->bk_db->table('quotetransactions')
                         ->where('QuoteId', $quote->Id)
                         ->get()
-                        ->map(function ($transaction) {
+                        ->map(function($transaction) {
                             return [
                                 'id' => $transaction->Id,
                                 'transaction_no' => $transaction->TransactionNo,
@@ -1189,12 +1178,11 @@ class BondsController extends Controller
                                 'is_accepted' => $transaction->IsAccepted,
                                 'is_rejected' => $transaction->IsRejected,
                                 'is_delegated' => $transaction->IsDelegated,
-                                'created_on' => $transaction->created_on,
+                                'created_on' => $transaction->created_on
                             ];
                         });
 
                     $quote->transactions = $transactions;
-
                     return $quote;
                 });
 
@@ -1219,12 +1207,12 @@ class BondsController extends Controller
                     ->where('AssignedBy', $isDelegate->AssignedBy)
                     ->where('ExitDate', '>=', Carbon::now())
                     ->get()
-                    ->map(function ($quote) {
+                    ->map(function($quote) {
                         // Get transactions for this quote
                         $transactions = $this->bk_db->table('quotetransactions')
                             ->where('QuoteId', $quote->Id)
                             ->get()
-                            ->map(function ($transaction) {
+                            ->map(function($transaction) {
                                 return [
                                     'id' => $transaction->Id,
                                     'transaction_no' => $transaction->TransactionNo,
@@ -1238,12 +1226,11 @@ class BondsController extends Controller
                                     'is_accepted' => $transaction->IsAccepted,
                                     'is_rejected' => $transaction->IsRejected,
                                     'is_delegated' => $transaction->IsDelegated,
-                                    'created_on' => $transaction->created_on,
+                                    'created_on' => $transaction->created_on
                                 ];
                             });
 
                         $quote->transactions = $transactions;
-
                         return $quote;
                     });
 
@@ -1260,12 +1247,12 @@ class BondsController extends Controller
                     ->where('ViewingParty', $isDelegate->AssignedBy)
                     ->where('ExitDate', '>=', Carbon::now())
                     ->get()
-                    ->map(function ($quote) {
+                    ->map(function($quote) {
                         // Get transactions for this quote
                         $transactions = $this->bk_db->table('quotetransactions')
                             ->where('QuoteId', $quote->Id)
                             ->get()
-                            ->map(function ($transaction) {
+                            ->map(function($transaction) {
                                 return [
                                     'id' => $transaction->Id,
                                     'transaction_no' => $transaction->TransactionNo,
@@ -1279,12 +1266,11 @@ class BondsController extends Controller
                                     'is_accepted' => $transaction->IsAccepted,
                                     'is_rejected' => $transaction->IsRejected,
                                     'is_delegated' => $transaction->IsDelegated,
-                                    'created_on' => $transaction->created_on,
+                                    'created_on' => $transaction->created_on
                                 ];
                             });
 
                         $quote->transactions = $transactions;
-
                         return $quote;
                     });
 
@@ -1301,12 +1287,12 @@ class BondsController extends Controller
                     ->where('AssignedBy', $user->Id)
                     ->where('ExitDate', '>=', Carbon::now())
                     ->get()
-                    ->map(function ($quote) {
+                    ->map(function($quote) {
                         // Get transactions for this quote
                         $transactions = $this->bk_db->table('quotetransactions')
                             ->where('QuoteId', $quote->Id)
                             ->get()
-                            ->map(function ($transaction) {
+                            ->map(function($transaction) {
                                 return [
                                     'id' => $transaction->Id,
                                     'transaction_no' => $transaction->TransactionNo,
@@ -1320,12 +1306,11 @@ class BondsController extends Controller
                                     'is_accepted' => $transaction->IsAccepted,
                                     'is_rejected' => $transaction->IsRejected,
                                     'is_delegated' => $transaction->IsDelegated,
-                                    'created_on' => $transaction->created_on,
+                                    'created_on' => $transaction->created_on
                                 ];
                             });
 
                         $quote->transactions = $transactions;
-
                         return $quote;
                     });
 
@@ -1340,53 +1325,52 @@ class BondsController extends Controller
                     'all_quotes' => $allQuotes,
                     'user_quotes' => $userQuotes,
                     'viewing_party_quotes' => $viewingPartyQuotes,
-                    'delegated_quotes' => $delegatedQuotes,
-                ],
+                    'delegated_quotes' => $delegatedQuotes
+                ]
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to fetch quotes',
-                'message' => $e->getMessage(),
+                'message' => $e->getMessage()
             ], 500);
         }
     }
 
-    public function getActiveQuotes(Request $request)
-    {
-        try {
+    public function getActiveQuotes(Request $request){
+       try{
 
-            $quotes = $this->bk_db->table('quotebook')
-                ->join('statstable', 'quotebook.BondIssueNo', '=', 'statstable.Id')
-                ->select('quotebook.*', 'statstable.BondIssueNo as BondIssueNo')
-                ->where('quotebook.ExitDate', '>=', Carbon::now())
-                ->get()
-                ->toArray();
+        $quotes = $this->bk_db->table('quotebook')
+            ->join('statstable', 'quotebook.BondIssueNo', '=', 'statstable.Id')
+            ->select('quotebook.*', 'statstable.BondIssueNo as BondIssueNo')
+            ->where('quotebook.ExitDate', '>=',Carbon::now())
+            ->get()
+            ->toArray();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Active Quotes fetched successfully.',
-                'data' => $quotes,
-            ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Active Quotes fetched successfully.',
+            'data' => $quotes
+        ]);
 
-        } catch (\Exception $e) {
+       } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch active quotes', 'message' => $e->getMessage()], 404);
-        }
+       }
+
 
     }
 
-    public function getViewingPartyQuotes(Request $request)
-    {
+    public function getViewingPartyQuotes(Request $request){
         $request->validate([
-            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email'
         ]);
         $email = $request->user_email;
 
         try {
 
             $this->bk_db->beginTransaction();
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($email);
 
             $quotes = $this->bk_db->table('quotebook')
@@ -1404,63 +1388,60 @@ class BondsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Viewing party quotes fetched successfully.',
-                'data' => $quotes,
+                'data' => $quotes
             ]);
         } catch (\Exception $e) {
             $this->bk_db->rollBack();
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch viewing party quotes: '.$e->getMessage(),
+                'message' => 'Failed to fetch viewing party quotes: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    public function delegatedQuotes(Request $request)
-    {
+    public function delegatedQuotes(Request $request){
         $request->validate([
             'delegate_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
         ]);
 
         $delegate_email = $request->delegate_email;
 
-        try {
+        try{
             // Start transaction
             $this->bk_db->beginTransaction();
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
 
             $delegate = $stdfns->get_user_id($delegate_email);
 
-            if (! $delegate) {
+            if (!$delegate) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
-            // get to see if the user is a delegate or not from leaveservice
-            $isDelegate = $this->bk_db->table('leaveservice')->where('Colleague', $delegate->Id)->where('EndDate', '>=', Carbon::now())->first();
-            if (! $isDelegate) {
+            //get to see if the user is a delegate or not from leaveservice
+            $isDelegate = $this->bk_db->table('leaveservice')->where('Colleague', $delegate->Id)->where('EndDate', '>=' ,Carbon::now())->first();
+            if (!$isDelegate) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User is not a delegate.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
             // Fetch delegated quotes
-            $delegatedQuotes = $this->bk_db->table('quotebook')->where('AssignedBy', $isDelegate->AssignedBy)->where('ExitDate', '>=', Carbon::now())->get()->toArray();
+            $delegatedQuotes = $this->bk_db->table('quotebook')->where('AssignedBy', $isDelegate->AssignedBy)->where('ExitDate', '>=',Carbon::now())->get()->toArray();
 
             return response()->json([
                 'success' => true,
                 'message' => ' delegated quotes fetched successfully.',
-                'data' => $delegatedQuotes,
+                'data' => $delegatedQuotes
             ]);
 
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred fetching delegated quotes.',
@@ -1471,34 +1452,33 @@ class BondsController extends Controller
         }
     }
 
-    public function activateQuote(Request $request)
-    {
+    public function activateQuote(Request $request){
         $request->validate([
             'quote_id' => 'required|integer|exists:bk_db.quotebook,Id',
-            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email'
         ]);
         $quoteId = $request->quote_id;
         $userEmail = $request->user_email;
 
         try {
 
-            $stdfns = new StandardFunctions;
-            $user = $stdfns->get_user_id($userEmail);
+            $stdfns = new StandardFunctions();
+            $user = $stdfns->get_user_id(     $userEmail);
             // Set new exit date to 5 days from now
             $newExitDate = now()->addWeekdays(3);
 
-            // check if actually exit date has arrived before activating
+            //check if actually exit date has arrived before activating
             $currentQuote = $this->bk_db->table('quotebook')
                 ->where('Id', $quoteId)
                 // ->where('created_by', $user->Id)
                 ->where('AssignedBy', $user->Id)
                 ->first();
 
-            if (! $currentQuote) {
+            if (!$currentQuote) {
                 // throw new \Exception('Quote not found or unauthorized');
                 return response()->json([
                     'success' => false,
-                    'message' => 'Quote not found or unauthorized',
+                    'message' => 'Quote not found or unauthorized'
                 ], 404);
 
             }
@@ -1507,7 +1487,7 @@ class BondsController extends Controller
                 // throw new \Exception('Cannot activate quote before exit date has arrived');
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot activate quote before exit date',
+                    'message' => 'Cannot activate quote before exit date'
                 ], 404);
             }
 
@@ -1517,50 +1497,48 @@ class BondsController extends Controller
                 ->where('created_by', $userEmail)
                 ->update([
                     'IsActive' => true,
-                    'ExitDate' => $newExitDate,
+                    'ExitDate' => $newExitDate
                 ]);
 
             $this->bk_db->commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Quote activated successfully.',
+                'message' => 'Quote activated successfully.'
             ]);
         } catch (\Exception $e) {
             $this->bk_db->rollBack();
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to activate quote: '.$e->getMessage(),
+                'message' => 'Failed to activate quote: ' . $e->getMessage()
 
             ], 500);
         }
     }
 
-    public function suspendQuote(Request $request)
-    {
+    public function suspendQuote(Request $request){
         $request->validate([
             'quote_id' => 'required|integer|exists:bk_db.quotebook,Id',
-            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email'
         ]);
         $quoteId = $request->quote_id;
         $userEmail = $request->user_email;
 
         try {
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($userEmail);
-            // check if actually exit date is valid before suspending
+            //check if actually exit date is valid before suspending
             $currentQuote = $this->bk_db->table('quotebook')
-                ->where('Id', $quoteId)
+            ->where('Id', $quoteId)
             // ->where('created_by', $user->Id)
-                ->where('AssignedBy', $user->Id)
-                ->first();
+            ->where('AssignedBy', $user->Id)
+            ->first();
 
-            if (! $currentQuote) {
+            if (!$currentQuote) {
                 // throw new \Exception('Quote not found or unauthorized');
                 return response()->json([
                     'success' => false,
-                    'message' => 'Quote not found or unauthorized',
+                    'message' => 'Quote not found or unauthorized'
                 ], 404);
 
             }
@@ -1569,7 +1547,7 @@ class BondsController extends Controller
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot suspend quote after exit date',
+                    'message' => 'Cannot suspend quote after exit date'
                 ], 404);
             }
 
@@ -1579,27 +1557,25 @@ class BondsController extends Controller
                 ->where('created_by', $user->Id)
                 ->update([
                     'IsActive' => false,
-                    'ExitDate' => now(),
+                    'ExitDate' => now()
                 ]);
-            $this->bk_db->commit();
+           $this->bk_db->commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Quote suspended successfully.',
+                'message' => 'Quote suspended successfully.'
             ]);
 
         } catch (\Exception $e) {
             $this->bk_db->rollBack();
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to suspend quote: '.$e->getMessage(),
+                'message' => 'Failed to suspend quote: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    public function updateQuote(Request $request)
-    {
+    public function updateQuote(Request $request){
         $request->validate([
             'quote_id' => 'required|integer|exists:bk_db.quotebook,Id',
             'bid_price' => 'required|numeric',
@@ -1614,7 +1590,7 @@ class BondsController extends Controller
             'total_payable' => 'required|numeric',
             'other_levies' => 'required|numeric',
             'commission_nse' => 'required|numeric',
-            'consideration' => 'required|numeric',
+            'consideration' => 'required|numeric'
         ]);
 
         $quote_id = $request->quote_id;
@@ -1632,28 +1608,28 @@ class BondsController extends Controller
         $commission_nse = $request->commission_nse;
         $consideration = $request->consideration;
 
-        try {
+        try{
             // Start transaction
             $this->bk_db->beginTransaction();
 
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($request->assigned_by);
 
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
             // Check if the bond exists
             $quote = $this->bk_db->table('quotebook')->where('Id', $quote_id)->first();
-            if (! $quote) {
+            if (!$quote) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Quote not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
             // Update the quote with the new details
@@ -1670,7 +1646,7 @@ class BondsController extends Controller
                 'TotalPayable' => $total_payable,
                 'OtherLevies' => $other_levies,
                 'CommissionNSE' => $commission_nse,
-                'Consideration' => $consideration,
+                'Consideration' => $consideration
             ]);
 
             // Commit the transaction
@@ -1679,11 +1655,10 @@ class BondsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Quote updated successfully.',
-                'data' => $quote,
+                'data' => $quote
             ]);
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred updating quote.',
@@ -1693,14 +1668,12 @@ class BondsController extends Controller
             ]);
         }
     }
-
-    public function createTransaction(Request $request)
-    {
+    public function createTransaction(Request $request){
         $request->validate([
             'quote_id' => 'required|integer|exists:bk_db.quotebook,Id',
             'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
             'bid_amount' => 'required|numeric',
-            'bid_price' => 'required|numeric',
+            'bid_price'  => 'required|numeric',
             'bid_yield' => 'required|numeric',
             'offer_amount' => 'required|numeric',
             'offer_price' => 'required|numeric',
@@ -1728,47 +1701,49 @@ class BondsController extends Controller
                 ->where('Id', $quote_id)
                 ->first();
 
-            if (! $quote) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Quote not found',
-                ], 404);
+            if (!$quote) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Quote not found'
+                    ], 404);
             }
 
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($user_email);
-            if (! $user) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'User not found',
+                    'message' => 'User not found'
                 ], 404);
             }
-            // check if us can not create transaction if he "AssignedBy " is the same user
+            //check if us can not create transaction if he "AssignedBy " is the same user
             if ($quote->AssignedBy == $user->Id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'You cannot create a transaction for your own quote',
+                    'message' => 'You cannot create a transaction for your own quote'
                 ], 404);
             }
 
             $transactionType = '';
-            // check if it's IsBid or IsOffer and mark accordingy
+            //check if it's IsBid or IsOffer and mark accordingy
             if ($quote->IsBid == 1) {
                 $transactionType = '<span class="text-green-600"><i class="fas fa-arrow-up"></i> Offer</span>';
             } elseif ($quote->IsOffer == 1) {
                 $transactionType = '<span class="text-blue-600"><i class="fas fa-arrow-down"></i> Bid</span>';
             }
 
+
             // Generate a unique transaction number
-            $transactionNo = 'BL-TXN-'.strtoupper(substr(uniqid(), 0, 4)).'-'.substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 4);
+            $transactionNo = 'BL-TXN-' . strtoupper(substr(uniqid(), 0, 4)) . '-' . substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 4);
+
 
             // select IsBid from quotebook where Id is $quote_id
             $isBid = $this->bk_db->table('quotebook')
                 ->where('Id', $quote_id)
                 ->first();
-            Log::info('Here now');
+            Log::info("Here now");
 
-            if ($isBid->IsBid == 1 && $offer_amount > $bid_amount) {
+            if($isBid->IsBid == 1 && $offer_amount > $bid_amount){
                 $newofferAmount = $bid_amount;
                 $newBidAmount = $offer_amount;
             } elseif ($isBid->IsOffer == 1 && $bid_amount > $offer_amount) {
@@ -1776,77 +1751,78 @@ class BondsController extends Controller
                 $newofferAmount = $bid_amount - $offer_amount;
             }
 
-            // if isbid is 1 , then , check if offer_amount is > than bid amount ,  then create a new quote with additional amount i.e $offer_amount - $bid_amount, also if isoffer is 1 , then create a new quote with additional amount i.e $bid_amount - $offer_amount
-            if ($isBid->IsBid == 1 && $offer_amount > $bid_amount) {
-                $additional_amount = $offer_amount - $bid_amount;
-                // use the
+//if isbid is 1 , then , check if offer_amount is > than bid amount ,  then create a new quote with additional amount i.e $offer_amount - $bid_amount, also if isoffer is 1 , then create a new quote with additional amount i.e $bid_amount - $offer_amount
+        if($isBid->IsBid == 1 && $offer_amount > $bid_amount){
+            $additional_amount = $offer_amount - $bid_amount;
+      //use the
 
-                // Create a new quote for the additional amount
-                $placement_no = $stdfns->generatePlacementNumber();
+            // Create a new quote for the additional amount
+            $placement_no = $stdfns->generatePlacementNumber();
 
-                $newQuoteId = $this->bk_db->table('quotebook')->insertGetId([
-                    'BondIssueNo' => $quote->BondIssueNo,
-                    'PlacementNo' => $placement_no,
-                    'IsBid' => false, // Since original was bid, new one should be offer
-                    'IsOffer' => true,
-                    'BidPrice' => $bid_price,
-                    'BidYield' => $bid_yield,
-                    'OfferPrice' => $offer_price,
-                    'OfferYield' => $offer_yield,
-                    'BidAmount' => false,
-                    'OfferAmount' => $additional_amount,
-                    'SettlementDate' => now()->addWeekdays(3),
-                    'AssignedBy' => $user->Id,
-                    'IsActive' => true,
-                    'ExitDate' => now()->addWeekdays(3),
-                    'created_on' => Carbon::now(),
-                    'created_by' => $user->Id,
-                ]);
-            } elseif ($isBid->IsOffer == 1 && $bid_amount > $offer_amount) {
-                $additional_amount = $bid_amount - $offer_amount;
-
-                // Create a new quote for the additional amount
-                $placement_no = $stdfns->generatePlacementNumber();
-
-                $newQuoteId = $this->bk_db->table('quotebook')->insertGetId([
-                    'BondIssueNo' => $quote->BondIssueNo,
-                    'PlacementNo' => $placement_no,
-                    'IsBid' => true, // Since original was offer, new one should be bid
-                    'IsOffer' => false,
-                    'BidPrice' => $bid_price,
-                    'BidYield' => $bid_yield,
-                    'OfferPrice' => $offer_price,
-                    'OfferYield' => $offer_yield,
-                    'BidAmount' => $additional_amount,
-                    'OfferAmount' => $newofferAmount,
-                    'SettlementDate' => now()->addWeekdays(3),
-                    'AssignedBy' => $user->Id,
-                    'IsActive' => true,
-                    'ExitDate' => now()->addWeekdays(3),
-                    'created_on' => Carbon::now(),
-                    'created_by' => $user->Id,
-                ]);
-            }
-
-            // Create the transaction
-            $transaction_id = $this->bk_db->table('quotetransactions')->insertGetId([
-                'QuoteId' => $quote_id,
-                'TransactionNo' => $transactionNo,
-                'BidAmount' => $newBidAmount,
-                'OfferAmount' => $newofferAmount,
+            $newQuoteId = $this->bk_db->table('quotebook')->insertGetId([
+                'BondIssueNo' => $quote->BondIssueNo,
+                'PlacementNo' => $placement_no,
+                'IsBid' => false, // Since original was bid, new one should be offer
+                'IsOffer' => true,
                 'BidPrice' => $bid_price,
-                'OfferPrice' => $offer_price,
                 'BidYield' => $bid_yield,
+                'OfferPrice' => $offer_price,
                 'OfferYield' => $offer_yield,
-                'InitiatedBy' => $user->Id,
+                'BidAmount' => false,
+                'OfferAmount' => $additional_amount,
+                'SettlementDate' => now()->addWeekdays(3),
+                'AssignedBy' => $user->Id,
+                'IsActive' => true,
+                'ExitDate' => now()->addWeekdays(3),
+                'created_on' => Carbon::now(),
                 'created_by' => $user->Id,
-                'created_on' => now(),
-                'IsPending' => true,
-                'IsAccepted' => false,
-                'IsRejected' => false,
-                'IsDelegated' => false,
-                // 'IsActive' => true
             ]);
+        } elseif ($isBid->IsOffer == 1 && $bid_amount > $offer_amount) {
+            $additional_amount = $bid_amount - $offer_amount;
+
+            // Create a new quote for the additional amount
+            $placement_no = $stdfns->generatePlacementNumber();
+
+            $newQuoteId = $this->bk_db->table('quotebook')->insertGetId([
+                'BondIssueNo' => $quote->BondIssueNo,
+                'PlacementNo' => $placement_no,
+                'IsBid' => true, // Since original was offer, new one should be bid
+                'IsOffer' => false,
+                'BidPrice' => $bid_price,
+                'BidYield' => $bid_yield,
+                'OfferPrice' => $offer_price,
+                'OfferYield' => $offer_yield,
+                'BidAmount' => $additional_amount,
+                'OfferAmount' => $newofferAmount,
+                'SettlementDate' => now()->addWeekdays(3),
+                'AssignedBy' => $user->Id,
+                'IsActive' => true,
+                'ExitDate' => now()->addWeekdays(3),
+                'created_on' => Carbon::now(),
+                'created_by' => $user->Id,
+            ]);
+        }
+
+
+                    // Create the transaction
+                    $transaction_id = $this->bk_db->table('quotetransactions')->insertGetId([
+                        'QuoteId' => $quote_id,
+                        'TransactionNo' => $transactionNo,
+                        'BidAmount' => $newBidAmount,
+                        'OfferAmount' => $newofferAmount,
+                        'BidPrice' => $bid_price,
+                        'OfferPrice' => $offer_price,
+                        'BidYield' => $bid_yield,
+                        'OfferYield' => $offer_yield,
+                        'InitiatedBy' => $user->Id,
+                        'created_by' => $user->Id,
+                        'created_on' => now(),
+                        'IsPending' => true,
+                        'IsAccepted' => false,
+                        'IsRejected' => false,
+                        'IsDelegated' => false
+                        // 'IsActive' => true
+                    ]);
 
             // Get user details for notification
             // $stdfns = new StandardFunctions();
@@ -1893,28 +1869,28 @@ class BondsController extends Controller
             //     }
             // }
 
-            // get placement number from quote
+
+            //get placement number from quote
             // $placementNumber = "<span class='text-blue-600'><i class='fas fa-file-invoice'></i> " . $quote->PlacementNo . "</span>";
             $placementNumber = $quote->PlacementNo;
-            // send notification to $user
+            //send notification to $user
 
-            $notifs = new NotificationController;
+            $notifs = new NotificationController();
             $notification_status = $notifs->createNotification(
                 $user->Id,
                 9, // Quote bid notification type
-                'Your Quote Transaction for PlacementNumber '.$placementNumber.' has been submitted. Login to check',
+                'Your Quote Transaction for PlacementNumber ' . $placementNumber . ' has been submitted. Login to check',
                 null,
                 null
             );
 
             if ($notification_status['success'] == false) {
                 $this->bk_db->rollBack();
-
                 return response()->json($notification_status);
             }
 
-            // send email to $user
-            $communication_manager = new CommunicationManagement;
+            //send email to $user
+            $communication_manager = new CommunicationManagement();
             $emailResponse = $communication_manager->composeMail(
                 $user->Email,
                 $user->FirstName,
@@ -1925,21 +1901,20 @@ class BondsController extends Controller
                 false,
                 false,
                 false,
-                'Quote Transaction Submitted',
-                'Your Quote Transaction for PlacementNumber '.$placementNumber.' has been submitted. Login to check'
+                "Quote Transaction Submitted",
+                "Your Quote Transaction for PlacementNumber " . $placementNumber . " has been submitted. Login to check"
             );
 
             if ($emailResponse['success'] == false) {
                 $this->bk_db->rollBack();
-
                 return response()->json($emailResponse);
             }
-            // log email
-            $stdfns = new StandardFunctions;
-            $logEmailResponse = $stdfns->logEmail(
+            //log email
+            $stdfns = new StandardFunctions();
+            $logEmailResponse =  $stdfns->logEmail(
                 $user->Id,
-                'Quote Transaction Submitted',
-                'Your Quote Transaction for PlacementNumber '.$placementNumber.' has been submitted. Login to check',
+                "Quote Transaction Submitted",
+                "Your Quote Transaction for PlacementNumber " . $placementNumber . " has been submitted. Login to check",
                 false, // allRecipientsEmails
                 false, // cc
                 false, // bcc
@@ -1950,27 +1925,26 @@ class BondsController extends Controller
                 false // isBulkEmail
             );
             // Send notification to quote owner
-            $notifs = new NotificationController;
+            $notifs = new NotificationController();
             $notification_status = $notifs->createNotification(
                 $quote->AssignedBy,
                 9, // Quote bid notification type
-                'You have received  '.$transactionType.' for your Quote, TransactionNo - '.$transactionNo.'. Login to check',
+                'You have received  ' . $transactionType . ' for your Quote, TransactionNo - ' . $transactionNo . '. Login to check',
                 null,
                 null
             );
 
             if ($notification_status['success'] == false) {
                 $this->bk_db->rollBack();
-
                 return response()->json($notification_status);
             }
-            // select Email where user is $quote->AssignedBy
+            //select Email where user is $quote->AssignedBy
             $quoteOwner = $this->bk_db->table('portaluserlogoninfo')
                 ->where('Id', $quote->AssignedBy)
                 ->first();
 
             // Send email to quote owner
-            $communication_manager = new CommunicationManagement;
+            $communication_manager = new CommunicationManagement();
             $emailResponse = $communication_manager->composeMail(
                 $quoteOwner->Email,
                 $quoteOwner->FirstName,
@@ -1981,24 +1955,23 @@ class BondsController extends Controller
                 false,
                 false,
                 false,
-                'New '.$transactionType.' Received',
-                'You have received a '.$transactionType.' for your Quote, TransactionNo - '.$transactionNo.'. Login to check'
+                "New " . $transactionType . " Received",
+                'You have received a ' . $transactionType . ' for your Quote, TransactionNo - ' . $transactionNo . '. Login to check'
             );
 
             if ($emailResponse['success'] == false) {
                 $this->bk_db->rollBack();
-
                 return response()->json([
                     'success' => false,
-                    'message' => $emailResponse,
+                    'message' => $emailResponse
                 ], 500);
             }
-            // log email
-            $stdfns = new StandardFunctions;
-            $logEmailResponse = $stdfns->logEmail(
+            //log email
+            $stdfns = new StandardFunctions();
+            $logEmailResponse =  $stdfns->logEmail(
                 $quoteOwner->Id,
-                'New '.$transactionType.' Received',
-                'You have received a '.$transactionType.' for your Quote, TransactionNo - '.$transactionNo.'. Login to check',
+                "New " . $transactionType . " Received",
+                'You have received a ' . $transactionType . ' for your Quote, TransactionNo - ' . $transactionNo . '. Login to check',
                 false, // allRecipientsEmails
                 false, // cc
                 false, // bcc
@@ -2015,16 +1988,15 @@ class BondsController extends Controller
                 'message' => 'Transaction created successfully',
                 'data' => [
                     // 'transaction_id' => $transaction_id,
-                    'transaction_no' => $transactionNo,
-                ],
+                    'transaction_no' => $transactionNo
+                ]
             ]);
 
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create transaction: '.$th->getMessage(),
+                'message' => 'Failed to create transaction: ' . $th->getMessage(),
                 'data' => $th->getMessage(),
                 'file' => $th->getFile(),
                 'line' => $th->getLine(),
@@ -2032,8 +2004,7 @@ class BondsController extends Controller
         }
     }
 
-    public function markTransactionStatus(Request $request)
-    {
+    public function markTransactionStatus(Request $request){
         $request->validate([
             'trans_id' => 'required|integer|exists:bk_db.quotetransactions,Id',
             'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
@@ -2055,13 +2026,13 @@ class BondsController extends Controller
             // Start transaction
             $this->bk_db->beginTransaction();
 
-            $stdfns = new StandardFunctions;
+            $stdfns = new StandardFunctions();
             $user = $stdfns->get_user_id($user_email);
-            if (! $user) {
+            if(!$user){
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -2069,32 +2040,32 @@ class BondsController extends Controller
                 ->where('Id', $trans_id)
                 ->first();
 
-            if (! $quoteTrans) {
+            if (!$quoteTrans) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Quote Transaction not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
-            // check if quoteTrans is either rejected/accepted depending on the status & is_accepted is true
-            if (($quoteTrans->IsAccepted == 1 && $is_accepted == true) || ($quoteTrans->IsRejected == 1 && $is_rejected == true)) {
+            //check if quoteTrans is either rejected/accepted depending on the status & is_accepted is true
+            if(($quoteTrans->IsAccepted == 1 && $is_accepted == true) || ($quoteTrans->IsRejected == 1 && $is_rejected == true)){
                 return response()->json([
                     'success' => false,
                     'message' => 'Quote Transaction already rejected/accepted.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
-            // get original Quote details
+            //get original Quote details
             $originalQuote = $this->bk_db->table('quotebook')
-                ->where('Id', $quoteTrans->QuoteId)
-                ->first();
+            ->where('Id', $quoteTrans->QuoteId)
+            ->first();
 
-            if (! $originalQuote) {
+            if (!$originalQuote) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Original quote not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -2103,31 +2074,31 @@ class BondsController extends Controller
                 ->where('Id', $originalQuote->AssignedBy)
                 ->first();
 
-            if (! $quoteOwner) {
+            if (!$quoteOwner) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Quote owner not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
-            // Only the original quote person can mark transaction status
-            if ($quoteOwner->Id !== $user->Id) {
+            //Only the original quote person can mark transaction status
+            if($quoteOwner->Id !== $user->Id){
                 return response()->json([
                     'success' => false,
                     'message' => 'You are not authorized to mark this transaction status.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
-            $statusText = '';
-            if ($is_accepted) {
+            $statusText = "";
+            if($is_accepted){
                 $statusText = "<span class='text-green-600'><i class='fas fa-check-circle'></i> Accepted</span>";
-            } elseif ($is_rejected) {
+            } elseif($is_rejected){
                 $statusText = "<span class='text-red-600'><i class='fas fa-times-circle'></i> Rejected</span>";
-            } elseif ($is_pending) {
+            } elseif($is_pending){
                 $statusText = "<span class='text-yellow-600'><i class='fas fa-clock'></i> Pending</span>";
-            } elseif ($is_delegated) {
+            } elseif($is_delegated){
                 $statusText = "<span class='text-blue-600'><i class='fas fa-user-shield'></i> Delegated</span>";
             }
             // Update quote status
@@ -2139,18 +2110,18 @@ class BondsController extends Controller
                     'IsPending' => $is_pending,
                     'IsDelegated' => $is_delegated,
                     'dola' => Carbon::now(),
-                    'altered_by' => $user->Id,
+                    'altered_by' => $user->Id
                 ]);
 
-            // get PlacementNumber from Quotes where Id is $trans_id
+                //get PlacementNumber from Quotes where Id is $trans_id
 
-            $placementNumber = $originalQuote->PlacementNo;
+              $placementNumber = $originalQuote->PlacementNo;
 
-            $initiator = $this->bk_db->table('portaluserlogoninfo')
+              $initiator = $this->bk_db->table('portaluserlogoninfo')
                 ->where('Id', $quoteTrans->InitiatedBy)
                 ->first();
             // Send email notification to initiator
-            $communication_manager = new CommunicationManagement;
+            $communication_manager = new CommunicationManagement();
             $emailResponse = $communication_manager->composeMail(
                 $initiator->Email,
                 $initiator->FirstName,
@@ -2161,22 +2132,21 @@ class BondsController extends Controller
                 false,
                 false,
                 false,
-                'Quote Status '.$statusText,
-                'Your Quote Transaction for PlacementNumber '.$placementNumber.' has been '.$statusText.' by '.$user->Email
+                "Quote Status ". $statusText ,
+                "Your Quote Transaction for PlacementNumber " . $placementNumber . " has been " . $statusText . " by " . $user->Email
             );
 
             if ($emailResponse['success'] == false) {
                 $this->bk_db->rollBack();
-
                 return response()->json($emailResponse, 500);
             }
 
-            // log email
-            $stdfns = new StandardFunctions;
-            $logEmailResponse = $stdfns->logEmail(
+            //log email
+            $stdfns = new StandardFunctions();
+            $logEmailResponse =  $stdfns->logEmail(
                 $initiator->Id,
-                'Quote Status '.$statusText,
-                'Your Quote Transaction for PlacementNumber '.$placementNumber.' has been '.$statusText.' by '.$user->Email,
+                "Quote Status " . $statusText,
+                "Your Quote Transaction for PlacementNumber " . $placementNumber . " has been " . $statusText . " by " . $user->Email,
                 false, // allRecipientsEmails
                 false, // cc
                 false, // bcc
@@ -2186,9 +2156,8 @@ class BondsController extends Controller
                 1,    // isFromSystem
                 false  // isBulkEmail
             );
-            if (! $logEmailResponse || (is_array($logEmailResponse) && $logEmailResponse['success'] === false)) {
+            if (!$logEmailResponse || (is_array($logEmailResponse) && $logEmailResponse['success'] === false)) {
                 $this->bk_db->rollBack();
-
                 return response()->json([
                     'success' => false,
                     'message' => 'Error logging email notification',
@@ -2198,24 +2167,24 @@ class BondsController extends Controller
             }
 
             // Create notification for initiator
-            $notifs = new NotificationController;
+            $notifs = new NotificationController();
             $notification_status = $notifs->createNotification(
                 $initiator->Id,
                 9, // Bid status update notification type
-                'Your Quote Transaction for PlacementNumber'.$placementNumber.' has been '.$statusText.' by '.$user->Email,
+                "Your Quote Transaction for PlacementNumber"  . $placementNumber .  " has been " . $statusText . " by " . $user->Email,
                 $trans_id,
                 null
             );
 
             if ($notification_status['success'] == false) {
                 $this->bk_db->rollBack();
-
                 return response()->json($notification_status);
             }
 
-            // Send email notification and Notification to $user
+
+              // Send email notification and Notification to $user
             //   $communication_manager = new CommunicationManagement();
-            $emailResponse1 = $communication_manager->composeMail(
+              $emailResponse1 = $communication_manager->composeMail(
                 $user->Email,
                 $user->FirstName,
                 false,
@@ -2225,41 +2194,39 @@ class BondsController extends Controller
                 false,
                 false,
                 false,
-                'Quote Status Submitted',
-                'You have '.$statusText.' a Quote Transaction for PlacementNumber '.$placementNumber.' with '.env('APP_NAME').'. Your feedback has been sent to the other party.'
-            );
-            if ($emailResponse1['success'] == false) {
+                "Quote Status Submitted",
+                "You have " . $statusText . " a Quote Transaction for PlacementNumber " . $placementNumber . " with ". env('APP_NAME') . ". Your feedback has been sent to the other party."
+              );
+              if ($emailResponse1['success'] == false) {
                 $this->bk_db->rollBack();
-
                 return response()->json($emailResponse1);
             }
-            // log email
+                  //log email
 
-            $logEmailResponse1 = $stdfns->logEmail(
-                $user->Id,
-                'Quote Status Submitted',
-                'You have '.$statusText.' a Quote Transaction for PlacementNumber '.$placementNumber.' with '.env('APP_NAME').'. Your feedback has been sent to the other party.',
-                false, // allRecipientsEmails
-                false, // cc
-                false, // bcc
-                false, // scheduleDate
-                false, // roleGroupSendingTo
-                false, // isDraft
-                1,    // isFromSystem
-                false  // isBulkEmail
-            );
+                  $logEmailResponse1 = $stdfns->logEmail(
+                    $user->Id,
+                    "Quote Status Submitted",
+                    "You have " . $statusText . " a Quote Transaction for PlacementNumber " . $placementNumber . " with ". env('APP_NAME') . ". Your feedback has been sent to the other party.",
+                    false, // allRecipientsEmails
+                    false, // cc
+                    false, // bcc
+                    false, // scheduleDate
+                    false, // roleGroupSendingTo
+                    false, // isDraft
+                    1,    // isFromSystem
+                    false  // isBulkEmail
+                  );
 
-            if (! $logEmailResponse || (is_array($logEmailResponse) && $logEmailResponse['success'] === false)) {
-                $this->bk_db->rollBack();
+                  if (!$logEmailResponse || (is_array($logEmailResponse) && $logEmailResponse['success'] === false)) {
+                    $this->bk_db->rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Error logging email notification',
+                        'data' => $logEmailResponse
+                    ]);
+                }
 
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Error logging email notification',
-                    'data' => $logEmailResponse,
-                ]);
-            }
-
-            // send notification to $user
+            //send notification to $user
 
             // Commit transaction
             $this->bk_db->commit();
@@ -2267,12 +2234,11 @@ class BondsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Quote status updated successfully.',
-                'data' => null,
+                'data' => null
             ]);
 
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred updating quote status.',
@@ -2283,117 +2249,112 @@ class BondsController extends Controller
         }
     }
 
-    // function getUserTransactions
-    public function getUserTransactions(Request $request)
-    {
-        $request->validate([
-            'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+//function getUserTransactions
+public function getUserTransactions(Request $request){
+    $request->validate([
+        'user_email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+    ]);
+
+    $user_email = $request->user_email;
+    $user  = $this->bk_db->table('portaluserlogoninfo')
+        ->where('Email', $user_email)
+        ->first();
+
+    if (!$user) {
+        return response()->json([
+            'success' => false,
+            'message' => 'User not found.',
+            'data' => null
         ]);
+    }
 
-        $user_email = $request->user_email;
-        $user = $this->bk_db->table('portaluserlogoninfo')
-            ->where('Email', $user_email)
-            ->first();
+    // Sent: InitiatedBy = user
+    $sentTransactions = $this->bk_db->table('quotetransactions')
+        ->where('InitiatedBy', $user->Id)
+        ->get()
+        ->map(function($item) {
+            $item->transaction_type = 'Sent';
+            return $item;
+        });
 
-        if (! $user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User not found.',
-                'data' => null,
-            ]);
-        }
+    // Received: QuoteId belongs to a quote where user is the owner (created_by)
+    $receivedTransactions = $this->bk_db->table('quotetransactions as qt')
+        ->join('quotebook as qb', 'qt.QuoteId', '=', 'qb.Id')
+        ->where('qb.created_by', $user->Id)
+        ->select('qt.*')
+        ->get()
+        ->map(function($item) {
+            $item->transaction_type = 'Received';
+            return $item;
+        });
 
-        // Sent: InitiatedBy = user
-        $sentTransactions = $this->bk_db->table('quotetransactions')
-            ->where('InitiatedBy', $user->Id)
-            ->get()
-            ->map(function ($item) {
-                $item->transaction_type = 'Sent';
+    // Delegated: Use leaveservice to find if user is a delegate, then get transactions where ReceivedBy = delegate's Id
+    $delegatedTransactions = collect();
+    $isDelegate = $this->bk_db->table('leaveservice')
+        ->where('Colleague', $user->Id)
+        ->where('EndDate', '>=', Carbon::now())
+        ->first();
 
-                return $item;
-            });
-
-        // Received: QuoteId belongs to a quote where user is the owner (created_by)
-        $receivedTransactions = $this->bk_db->table('quotetransactions as qt')
+    if ($isDelegate) {
+        // Get transactions assigned to the delegating user
+        $delegatedTransactions = $this->bk_db->table('quotetransactions as qt')
             ->join('quotebook as qb', 'qt.QuoteId', '=', 'qb.Id')
-            ->where('qb.created_by', $user->Id)
+            ->where('qb.AssignedBy', $isDelegate->AssignedBy)
             ->select('qt.*')
             ->get()
-            ->map(function ($item) {
-                $item->transaction_type = 'Received';
-
+            ->map(function($item) {
+                $item->transaction_type = 'Delegated';
                 return $item;
             });
 
-        // Delegated: Use leaveservice to find if user is a delegate, then get transactions where ReceivedBy = delegate's Id
-        $delegatedTransactions = collect();
-        $isDelegate = $this->bk_db->table('leaveservice')
-            ->where('Colleague', $user->Id)
-            ->where('EndDate', '>=', Carbon::now())
-            ->first();
+        // Get transactions where delegating user is viewing party
+        $delegatedViewingPartyTransactions = $this->bk_db->table('quotetransactions as qt')
+            ->join('quotebook as qb', 'qt.QuoteId', '=', 'qb.Id')
+            ->where('qb.ViewingParty', $isDelegate->AssignedBy)
+            ->select('qt.*')
+            ->get()
+            ->map(function($item) {
+                $item->transaction_type = 'Delegated';
+                return $item;
+            });
 
-        if ($isDelegate) {
-            // Get transactions assigned to the delegating user
-            $delegatedTransactions = $this->bk_db->table('quotetransactions as qt')
-                ->join('quotebook as qb', 'qt.QuoteId', '=', 'qb.Id')
-                ->where('qb.AssignedBy', $isDelegate->AssignedBy)
-                ->select('qt.*')
-                ->get()
-                ->map(function ($item) {
-                    $item->transaction_type = 'Delegated';
+        // Get transactions delegated to the delegating user
+        $delegatedToUserTransactions = $this->bk_db->table('quotetransactions as qt')
+            ->join('quotebook as qb', 'qt.QuoteId', '=', 'qb.Id')
+            ->where('qb.AssignedBy', $user->Id)
+            ->select('qt.*')
+            ->get()
+            ->map(function($item) {
+                $item->transaction_type = 'Delegated';
+                return $item;
+            });
 
-                    return $item;
-                });
-
-            // Get transactions where delegating user is viewing party
-            $delegatedViewingPartyTransactions = $this->bk_db->table('quotetransactions as qt')
-                ->join('quotebook as qb', 'qt.QuoteId', '=', 'qb.Id')
-                ->where('qb.ViewingParty', $isDelegate->AssignedBy)
-                ->select('qt.*')
-                ->get()
-                ->map(function ($item) {
-                    $item->transaction_type = 'Delegated';
-
-                    return $item;
-                });
-
-            // Get transactions delegated to the delegating user
-            $delegatedToUserTransactions = $this->bk_db->table('quotetransactions as qt')
-                ->join('quotebook as qb', 'qt.QuoteId', '=', 'qb.Id')
-                ->where('qb.AssignedBy', $user->Id)
-                ->select('qt.*')
-                ->get()
-                ->map(function ($item) {
-                    $item->transaction_type = 'Delegated';
-
-                    return $item;
-                });
-
-            // Combine all delegated transactions
-            $delegatedTransactions = $delegatedTransactions
-                ->concat($delegatedViewingPartyTransactions)
-                ->concat($delegatedToUserTransactions)
-                ->unique('Id')
-                ->values();
-        }
-
-        // Merge all and remove duplicates (if any)
-        $allTransactions = collect()
-            ->merge($sentTransactions)
-            ->merge($receivedTransactions)
-            ->merge($delegatedTransactions)
+        // Combine all delegated transactions
+        $delegatedTransactions = $delegatedTransactions
+            ->concat($delegatedViewingPartyTransactions)
+            ->concat($delegatedToUserTransactions)
             ->unique('Id')
             ->values();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User transactions fetched successfully.',
-            'data' => $allTransactions,
-            'sent' => $sentTransactions,
-            'received' => $receivedTransactions,
-            'delegated' => $delegatedTransactions,
-        ], 200);
     }
+
+    // Merge all and remove duplicates (if any)
+    $allTransactions = collect()
+        ->merge($sentTransactions)
+        ->merge($receivedTransactions)
+        ->merge($delegatedTransactions)
+        ->unique('Id')
+        ->values();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'User transactions fetched successfully.',
+        'data' => $allTransactions,
+        'sent' => $sentTransactions,
+        'received' => $receivedTransactions,
+        'delegated' => $delegatedTransactions
+    ], 200);
+}
+
 
     // //getSentTransactions
     // public function getSentTransactions(Request $request){
@@ -2477,8 +2438,9 @@ class BondsController extends Controller
     //     }
     // }
 
-    // Graph Data
-    // get details in bond calculator
+
+    //Graph Data
+    //get details in bond calculator
 
     public function getBondCalculatorDetails()
     {
@@ -2490,38 +2452,34 @@ class BondsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Bond calculator details fetched successfully.',
-                'data' => $bondDetails,
+                'data' => $bondDetails
             ], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch bond calculator details', 'message' => $e->getMessage()], 404);
         }
     }
-
-    // get tableparams
+    //get tableparams
     public function getTableParams()
     {
         try {
             $tableParams = $this->bk_db->table('tableparams')->first();
-
             return response()->json($tableParams, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch table params', 'message' => $e->getMessage()], 404);
         }
     }
-
-    // get secondary market bonds
+    //get secondary market bonds
     public function getSecondaryMarketBonds()
     {
         try {
             $bonds = $this->bk_db->table('statstable')
-                ->get();
+                                 ->get();
 
             return response()->json($bonds, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch secondary market bonds', 'message' => $e->getMessage()], 404);
         }
     }
-
     // get primary market bonds
     public function getPrimaryMarketBonds()
     {
@@ -2534,7 +2492,6 @@ class BondsController extends Controller
             return response()->json(['error' => 'Failed to fetch primary market bonds', 'message' => $e->getMessage()], 404);
         }
     }
-
     // bondmarketPerformance vs Economic Indicators
     public function getBondMarketPerformance()
     {
@@ -2552,7 +2509,7 @@ class BondsController extends Controller
             // Get date range from OBI data
             $firstDate = null;
             $lastDate = null;
-            if (! empty($obiData)) {
+            if (!empty($obiData)) {
                 $firstDate = $obiData[0]->Date;
                 $lastDate = end($obiData)->Date;
             }
@@ -2570,42 +2527,41 @@ class BondsController extends Controller
 
             // Prepare data for the response
             $response = [
-                'oneYr' => array_map(function ($row) {
+                'oneYr' => array_map(function($row) {
                     return [
                         'x' => $row->Date,
-                        'y' => $row->OBITR,
+                        'y' => $row->OBITR
                     ];
                 }, $obiData),
-                'cbrRate' => array_map(function ($row) {
+                'cbrRate' => array_map(function($row) {
                     return [
                         'x' => $row->Date,
-                        'y' => $row->CBR,
+                        'y' => $row->CBR
                     ];
                 }, $ytmData),
-                'inflation' => array_map(function ($row) {
+                'inflation' => array_map(function($row) {
                     return [
                         'x' => $row->Date,
-                        'y' => $row->Inflation,
+                        'y' => $row->Inflation
                     ];
-                }, $ytmData),
+                }, $ytmData)
             ];
 
             return response()->json([
                 'success' => true,
                 'message' => 'Bond market performance data fetched successfully.',
-                'data' => $response,
+                'data' => $response
             ], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch bond market performance data', 'message' => $e->getMessage()], 404);
         }
     }
-
-    // Spot Yield Curve (Kenya)
+    //Spot Yield Curve (Kenya)
     public function getSpotYieldCurve()
     {
         try {
 
-            // fetch valuedate from tableparams
+            //fetch valuedate from tableparams
             $valuedate = $this->bk_db->table('TableParams')
                 ->select('ValueDate')
                 ->first();
@@ -2618,17 +2574,17 @@ class BondsController extends Controller
                 ->toArray();
 
             // Prepare data for the response
-            $response = array_map(function ($row) {
+            $response = array_map(function($row) {
                 return [
                     'x' => $row->Year,
-                    'y' => $row->SpotRate * 100, // Express SpotRate as a percentage
+                    'y' => $row->SpotRate * 100 // Express SpotRate as a percentage
                 ];
             }, $spotYieldData);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Spot yield curve data fetched successfully.',
-                'data' => $response,
+                'data' => $response
             ], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch spot yield curve data', 'message' => $e->getMessage()], 404);
@@ -2647,24 +2603,24 @@ class BondsController extends Controller
 
             // Prepare data for the response
             $response = [
-                'UpperBand' => array_map(function ($row) {
+                'UpperBand' => array_map(function($row) {
                     return [
                         'x' => $row->Year,
-                        'y' => $row->UpperBand * 100, // Express UpperBand as a percentage
+                        'y' => $row->UpperBand * 100 // Express UpperBand as a percentage
                     ];
                 }, $projectionData),
-                'LowerBand' => array_map(function ($row) {
+                'LowerBand' => array_map(function($row) {
                     return [
                         'x' => $row->Year,
-                        'y' => $row->LowerBand * 100, // Express LowerBand as a percentage
+                        'y' => $row->LowerBand * 100 // Express LowerBand as a percentage
                     ];
-                }, $projectionData),
+                }, $projectionData)
             ];
 
             return response()->json([
                 'success' => true,
                 'message' => 'Projection bands data fetched successfully.',
-                'data' => $response,
+                'data' => $response
             ], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch projection bands data', 'message' => $e->getMessage()], 404);
@@ -2698,33 +2654,35 @@ class BondsController extends Controller
 
             // Prepare data for the response
             $response = [
-                'oneWeekAgo' => array_map(function ($row) {
+                'oneWeekAgo' => array_map(function($row) {
                     return [
                         'x' => $row->Year,
-                        'y' => $row->SpotRate * 100, // Express SpotRate as a percentage
+                        'y' => $row->SpotRate * 100 // Express SpotRate as a percentage
                     ];
                 }, $oneWeekAgoData),
-                'oneMonthAgo' => array_map(function ($row) {
+                'oneMonthAgo' => array_map(function($row) {
                     return [
                         'x' => $row->Year,
-                        'y' => $row->SpotRate * 100, // Express SpotRate as a percentage
+                        'y' => $row->SpotRate * 100 // Express SpotRate as a percentage
                     ];
                 }, $oneMonthAgoData),
-                'oneYearAgo' => array_map(function ($row) {
+                'oneYearAgo' => array_map(function($row) {
                     return [
                         'x' => $row->Year,
-                        'y' => $row->SpotRate * 100, // Express SpotRate as a percentage
+                        'y' => $row->SpotRate * 100 // Express SpotRate as a percentage
                     ];
-                }, $oneYearAgoData),
+                }, $oneYearAgoData)
             ];
 
             return response()->json([
                 'success' => true,
                 'message' => 'Historical bands data fetched successfully.',
-                'data' => $response,
+                'data' => $response
             ], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch historical bands data', 'message' => $e->getMessage()], 404);
         }
     }
+
+
 }

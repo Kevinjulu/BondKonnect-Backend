@@ -2,21 +2,19 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Cache;
 
 class CacheService
 {
     // Cache durations in minutes
     const USER_CACHE_DURATION = 60; // 1 hour
-
     const NOTIFICATIONS_CACHE_DURATION = 15; // 15 minutes
-
     const MESSAGES_CACHE_DURATION = 10; // 10 minutes
-
     const USER_ROLES_CACHE_DURATION = 120; // 2 hours
-
     const GENERAL_DATA_CACHE_DURATION = 30; // 30 minutes
 
     /**
@@ -24,11 +22,10 @@ class CacheService
      */
     public static function getUserDetails($email)
     {
-        $cacheKey = 'user_details:'.md5($email);
+        $cacheKey = "user_details:" . md5($email);
 
         return Cache::remember($cacheKey, self::USER_CACHE_DURATION, function () use ($email) {
             $db = DB::connection('bk_db');
-
             return $db->table('portaluserlogoninfo')
                 ->where('Email', $email)
                 ->first();
@@ -40,11 +37,10 @@ class CacheService
      */
     public static function getUserRole($userId)
     {
-        $cacheKey = 'user_role:'.$userId;
+        $cacheKey = "user_role:" . $userId;
 
         return Cache::remember($cacheKey, self::USER_ROLES_CACHE_DURATION, function () use ($userId) {
             $db = DB::connection('bk_db');
-
             return $db->table('userroles')
                 ->where('User', $userId)
                 ->value('Role');
@@ -56,7 +52,7 @@ class CacheService
      */
     public static function getUserNotifications($userId, $unreadOnly = false)
     {
-        $cacheKey = 'user_notifications:'.$userId.($unreadOnly ? ':unread' : ':all');
+        $cacheKey = "user_notifications:" . $userId . ($unreadOnly ? ':unread' : ':all');
 
         return Cache::remember($cacheKey, self::NOTIFICATIONS_CACHE_DURATION, function () use ($userId, $unreadOnly) {
             $db = DB::connection('bk_db');
@@ -90,7 +86,7 @@ class CacheService
      */
     public static function getUserMessages($userId, $roleId)
     {
-        $cacheKey = 'user_messages:'.$userId.':'.$roleId;
+        $cacheKey = "user_messages:" . $userId . ":" . $roleId;
 
         return Cache::remember($cacheKey, self::MESSAGES_CACHE_DURATION, function () use ($userId, $roleId) {
             $db = DB::connection('bk_db');
@@ -159,14 +155,14 @@ class CacheService
      */
     public static function getMessageThread($messageId)
     {
-        $cacheKey = 'message_thread:'.$messageId;
+        $cacheKey = "message_thread:" . $messageId;
 
         return Cache::remember($cacheKey, self::MESSAGES_CACHE_DURATION, function () use ($messageId) {
             $db = DB::connection('bk_db');
 
             // Fetch the message
             $message = $db->table('Message')->where('Id', $messageId)->first();
-            if (! $message) {
+            if (!$message) {
                 return null;
             }
 
@@ -184,8 +180,8 @@ class CacheService
                         ->select('Id', 'DocumentId', 'PageId', 'LocationUrl', 'DocumentName')
                         ->where('MessageId', $message->Id)
                         ->get(),
-                    'is_initial_message' => true,
-                ],
+                    'is_initial_message' => true
+                ]
             ]);
 
             // Fetch all replies
@@ -193,7 +189,7 @@ class CacheService
                 ->where('MessageId', $messageId)
                 ->orderBy('created_on', 'asc')
                 ->get()
-                ->map(function ($reply) use ($db) {
+                ->map(function($reply) use ($db) {
                     return [
                         'Id' => $reply->Id,
                         'Description' => $reply->ReplyDescription,
@@ -206,7 +202,7 @@ class CacheService
                             ->select('Id', 'DocumentId', 'PageId', 'LocationUrl', 'DocumentName')
                             ->where('MessageReplyId', $reply->Id)
                             ->get(),
-                        'is_initial_message' => false,
+                        'is_initial_message' => false
                     ];
                 });
 
@@ -219,7 +215,7 @@ class CacheService
      */
     public static function getMessageParticipants()
     {
-        $cacheKey = 'message_participants';
+        $cacheKey = "message_participants";
 
         return Cache::remember($cacheKey, self::GENERAL_DATA_CACHE_DURATION, function () {
             $db = DB::connection('bk_db');
@@ -229,9 +225,9 @@ class CacheService
                 ->join('portaluserlogoninfo as pu', 'ur.User', '=', 'pu.Id')
                 ->where('ur.Role', '!=', 1)
                 ->select('ur.Id', 'pu.Id as details_id', 'pu.Email as details_email',
-                    'pu.FirstName as details_first_name', 'pu.OtherNames as details_other_names')
+                        'pu.FirstName as details_first_name', 'pu.OtherNames as details_other_names')
                 ->get()
-                ->map(function ($participant) {
+                ->map(function($participant) {
                     return [
                         'Id' => $participant->Id,
                         'details' => [
@@ -239,7 +235,7 @@ class CacheService
                             'Email' => $participant->details_email,
                             'FirstName' => $participant->details_first_name,
                             'OtherNames' => $participant->details_other_names,
-                        ],
+                        ]
                     ];
                 });
 
@@ -248,9 +244,9 @@ class CacheService
                 ->join('portaluserlogoninfo as pu', 'ur.User', '=', 'pu.Id')
                 ->where('ur.Role', 1)
                 ->select('ur.Id', 'pu.Id as details_id', 'pu.Email as details_email',
-                    'pu.FirstName as details_first_name', 'pu.OtherNames as details_other_names')
+                        'pu.FirstName as details_first_name', 'pu.OtherNames as details_other_names')
                 ->get()
-                ->map(function ($admin) {
+                ->map(function($admin) {
                     return [
                         'Id' => $admin->Id,
                         'details' => [
@@ -258,13 +254,13 @@ class CacheService
                             'Email' => $admin->details_email,
                             'FirstName' => $admin->details_first_name,
                             'OtherNames' => $admin->details_other_names,
-                        ],
+                        ]
                     ];
                 });
 
             return [
                 'data' => $participants,
-                'admins' => $admins,
+                'admins' => $admins
             ];
         });
     }
@@ -275,26 +271,26 @@ class CacheService
     public static function clearUserCache($userId, $email = null)
     {
         $keysToForget = [
-            'user_role:'.$userId,
-            'user_notifications:'.$userId.':unread',
-            'user_notifications:'.$userId.':all',
+            "user_role:" . $userId,
+            "user_notifications:" . $userId . ":unread",
+            "user_notifications:" . $userId . ":all",
         ];
 
         if ($email) {
-            $keysToForget[] = 'user_details:'.md5($email);
+            $keysToForget[] = "user_details:" . md5($email);
         }
 
         // Also clear message caches for this user
         $roleId = self::getUserRole($userId);
         if ($roleId) {
-            $keysToForget[] = 'user_messages:'.$userId.':'.$roleId;
+            $keysToForget[] = "user_messages:" . $userId . ":" . $roleId;
         }
 
         foreach ($keysToForget as $key) {
             Cache::forget($key);
         }
 
-        Log::info('Cleared cache for user: '.$userId);
+        Log::info('Cleared cache for user: ' . $userId);
     }
 
     /**
@@ -302,10 +298,10 @@ class CacheService
      */
     public static function clearNotificationCache($userId)
     {
-        Cache::forget('user_notifications:'.$userId.':unread');
-        Cache::forget('user_notifications:'.$userId.':all');
+        Cache::forget("user_notifications:" . $userId . ":unread");
+        Cache::forget("user_notifications:" . $userId . ":all");
 
-        Log::info('Cleared notification cache for user: '.$userId);
+        Log::info('Cleared notification cache for user: ' . $userId);
     }
 
     /**
@@ -313,13 +309,13 @@ class CacheService
      */
     public static function clearMessageCache($userId, $roleId = null)
     {
-        if (! $roleId) {
+        if (!$roleId) {
             $roleId = self::getUserRole($userId);
         }
 
-        Cache::forget('user_messages:'.$userId.':'.$roleId);
+        Cache::forget("user_messages:" . $userId . ":" . $roleId);
 
-        Log::info('Cleared message cache for user: '.$userId);
+        Log::info('Cleared message cache for user: ' . $userId);
     }
 
     /**
@@ -327,9 +323,9 @@ class CacheService
      */
     public static function clearMessageThreadCache($messageId)
     {
-        Cache::forget('message_thread:'.$messageId);
+        Cache::forget("message_thread:" . $messageId);
 
-        Log::info('Cleared message thread cache for message: '.$messageId);
+        Log::info('Cleared message thread cache for message: ' . $messageId);
     }
 
     /**
@@ -360,20 +356,19 @@ class CacheService
                     'keyspace_hits' => $info['keyspace_hits'] ?? 0,
                     'keyspace_misses' => $info['keyspace_misses'] ?? 0,
                     'hit_rate' => $info['keyspace_hits'] && $info['keyspace_misses']
-                        ? round(($info['keyspace_hits'] / ($info['keyspace_hits'] + $info['keyspace_misses'])) * 100, 2).'%'
-                        : '0%',
+                        ? round(($info['keyspace_hits'] / ($info['keyspace_hits'] + $info['keyspace_misses'])) * 100, 2) . '%'
+                        : '0%'
                 ];
             } else {
                 // For file-based or other cache drivers
                 return [
                     'driver' => $cacheDriver,
                     'status' => 'active',
-                    'message' => 'Cache statistics not available for '.$cacheDriver.' driver',
+                    'message' => 'Cache statistics not available for ' . $cacheDriver . ' driver'
                 ];
             }
         } catch (\Exception $e) {
-            Log::error('Error getting cache stats: '.$e->getMessage());
-
+            Log::error('Error getting cache stats: ' . $e->getMessage());
             return ['error' => 'Unable to retrieve cache statistics'];
         }
     }

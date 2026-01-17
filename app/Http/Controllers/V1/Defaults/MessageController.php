@@ -1,21 +1,22 @@
 <?php
 
 namespace App\Http\Controllers\V1\Defaults;
-
-use App\Events\MessageSent;
-use App\Http\Controllers\Controller;
-use App\Http\Controllers\V1\Notifications\NotificationController;
-use App\Services\CacheService;
 use Carbon\Carbon;
+use App\Events\MessageSent;
 use Illuminate\Http\Request;
+use App\Services\CacheService;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\V1\Defaults\StandardFunctions;
+use App\Http\Controllers\V1\Notifications\NotificationController;
 
 class MessageController extends Controller
 {
+
     private function createMessage($request)
     {
-        $notifs = new NotificationController;
-        $default = new StandardFunctions;
+        $notifs = new NotificationController();
+        $default = new StandardFunctions();
         $created_by = $default->get_user_id($request->message_created_by);
 
         return $this->bk_db->table('message')->insertGetId([
@@ -29,14 +30,14 @@ class MessageController extends Controller
             'IsEdited' => false,
             'IsDelete' => false,
             'created_by' => $created_by->Id,
-            'created_on' => Carbon::now(),
+            'created_on' => Carbon::now()
         ]);
     }
 
     private function createMessageReply($request)
     {
 
-        $default = new StandardFunctions;
+        $default = new StandardFunctions();
         $created_by = $default->get_user_id($request->reply_created_by);
 
         return $this->bk_db->table('messagereplies')->insertGetId([
@@ -57,22 +58,22 @@ class MessageController extends Controller
         Log::info('Raw attachments:', ['attachments' => $attachments]);
 
         try {
-            $default = new StandardFunctions;
+            $default = new StandardFunctions();
 
             // Ensure upload directory exists
             $uploadPath = storage_path('resources/dms');
             // Log::info('Upload path: ' . $uploadPath);
 
-            if (! file_exists($uploadPath)) {
+            if (!file_exists($uploadPath)) {
                 Log::info('Creating upload directory');
-                if (! mkdir($uploadPath, 0777, true)) {
+                if (!mkdir($uploadPath, 0777, true)) {
                     Log::error('Failed to create upload directory');
                     throw new \Exception('Failed to create upload directory');
                 }
             }
 
             // If single file is passed, convert to array
-            if (! is_array($attachments)) {
+            if (!is_array($attachments)) {
                 $attachments = [$attachments];
             }
 
@@ -82,30 +83,29 @@ class MessageController extends Controller
                 Log::info('Processing attachment:', [
                     'name' => $attachment->getClientOriginalName(),
                     'size' => $attachment->getSize(),
-                    'mime' => $attachment->getMimeType(),
+                    'mime' => $attachment->getMimeType()
                 ]);
 
-                if (! $attachment->isValid()) {
+                if (!$attachment->isValid()) {
                     Log::error('Invalid file upload:', [
                         'error' => $attachment->getError(),
-                        'name' => $attachment->getClientOriginalName(),
+                        'name' => $attachment->getClientOriginalName()
                     ]);
-
                     continue;
                 }
 
-                $unique_file_name = time().'_'.$attachment->getClientOriginalName();
+                $unique_file_name = time() . '_' . $attachment->getClientOriginalName();
                 // Log::info('Generated unique filename: ' . $unique_file_name);
 
                 try {
                     // Move file to storage
                     // Log::info('Moving file to: ' . $uploadPath . '/' . $unique_file_name);
-                    if (! $attachment->move($uploadPath, $unique_file_name)) {
+                    if (!$attachment->move($uploadPath, $unique_file_name)) {
                         throw new \Exception('Failed to move uploaded file');
                     }
 
                     $user_id = $default->get_user_id($created_by);
-                    $location_url = 'resources/dms/'.$unique_file_name;
+                    $location_url = 'resources/dms/' . $unique_file_name;
 
                     // Store file reference in database
                     $documentData = [
@@ -120,7 +120,7 @@ class MessageController extends Controller
 
                     if ($is_reply) {
                         $documentData['MessageReplyId'] = $message_id;
-                    } elseif ($is_main_message) {
+                    } else if ($is_main_message) {
                         $documentData['MessageId'] = $message_id;
                     }
 
@@ -128,7 +128,7 @@ class MessageController extends Controller
 
                     // Insert record
                     $inserted = $this->bk_db->table('SystemRefDocuments')->insert($documentData);
-                    if (! $inserted) {
+                    if (!$inserted) {
                         Log::error('Failed to insert document record');
                         throw new \Exception('Failed to save file reference to database');
                     }
@@ -138,11 +138,11 @@ class MessageController extends Controller
                     Log::error('Error processing file:', [
                         'file' => $unique_file_name,
                         'error' => $th->getMessage(),
-                        'trace' => $th->getTraceAsString(),
+                        'trace' => $th->getTraceAsString()
                     ]);
                     // Clean up file if database insert failed
-                    if (file_exists($uploadPath.'/'.$unique_file_name)) {
-                        unlink($uploadPath.'/'.$unique_file_name);
+                    if (file_exists($uploadPath . '/' . $unique_file_name)) {
+                        unlink($uploadPath . '/' . $unique_file_name);
                     }
                     throw $th;
                 }
@@ -150,15 +150,14 @@ class MessageController extends Controller
 
             return [
                 'success' => true,
-                'message' => 'Files uploaded successfully.',
+                'message' => 'Files uploaded successfully.'
             ];
 
         } catch (\Throwable $th) {
             Log::error('HandleAttachments error:', [
                 'message' => $th->getMessage(),
-                'trace' => $th->getTraceAsString(),
+                'trace' => $th->getTraceAsString()
             ]);
-
             return [
                 'success' => false,
                 'message' => 'An error occurred while processing attachments.',
@@ -186,7 +185,7 @@ class MessageController extends Controller
             'message_assigned_to' => 'nullable|integer|exists:bk_db.portaluserlogoninfo,Id',
             // 'message_due_date' => 'nullable|date|after:today',
             'message_attachments.*' => 'nullable|file',
-            'message_created_by' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+            'message_created_by' => 'required|email|exists:bk_db.portaluserlogoninfo,Email'
         ]);
 
         try {
@@ -194,35 +193,35 @@ class MessageController extends Controller
             // Start transaction
             $this->bk_db->beginTransaction();
             // get the user id from the email
-            $default = new StandardFunctions;
+            $default = new StandardFunctions();
 
             $user_id = $default->get_user_id($request->message_created_by);
 
-            if (! $user_id) {
+            if (!$user_id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
             $role_id = $this->bk_db->table('userroles')
-                ->where('User', $user_id->Id)
-                ->value('Role');
+                            ->where('User', $user_id->Id)
+                            ->value('Role');
 
             // if message_assigned_to is not set and the created by is an admin, then request for it
-            if (! $request->message_assigned_to && $role_id == 1) {
+            if (!$request->message_assigned_to && $role_id == 1) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Please assign the request to a user.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
-            // print_r($user_id);
+            //print_r($user_id);
             // Insert message
             $message_id = $this->createMessage($request);
-            Log::info('Message created with ID: '.$message_id);
+            Log::info('Message created with ID: ' . $message_id);
 
             if ($request->hasFile('message_attachments')) {
                 Log::info('Processing message attachments');
@@ -238,20 +237,21 @@ class MessageController extends Controller
 
                 if ($response['success'] == false) {
                     $this->bk_db->rollBack();
-
                     return response()->json($response);
                 }
             } else {
                 Log::info('No attachments found in request');
             }
 
-            $notifs = new NotificationController;
+            $notifs = new NotificationController();
 
             if ($role_id != 1) {
                 // since it is going to admins, all admins will be assigned
                 $admins = $this->bk_db->table('userroles')
                     ->where('Role', 1)
                     ->get();
+
+
 
                 foreach ($admins as $admin) {
 
@@ -260,14 +260,13 @@ class MessageController extends Controller
                         // $admin->Email,
                         $admin->User,
                         2,
-                        'A new message has been sent by '.$user_id->FirstName.' '.$user_id->OtherNames,
+                        'A new message has been sent by ' . $user_id->FirstName . ' ' . $user_id->OtherNames,
                         $message_id,
                         null
                     );
 
                     if ($notification_status['success'] == false) {
                         $this->bk_db->rollBack();
-
                         return response()->json($notification_status);
                     }
 
@@ -301,7 +300,7 @@ class MessageController extends Controller
 
             $notification_status_recipient = $notifs->createNotification(
                 // $request->message_created_by,
-                $request->message_assigned_to,
+                $request->message_assigned_to ,
                 1,
                 'You have a new message.',
                 $message_id,
@@ -325,7 +324,7 @@ class MessageController extends Controller
                     'assignee.Id as assigned_to_id',
                     'assignee.Email as assigned_to_email',
                     'assignee.FirstName as assigned_to_first_name',
-                    'assignee.OtherNames as assigned_to_other_names',
+                    'assignee.OtherNames as assigned_to_other_names'
                 ])
                 ->first();
 
@@ -335,7 +334,7 @@ class MessageController extends Controller
                     'Id' => $messageDetails->Id,
                     'Description' => $messageDetails->Description,
                     'created_on' => $messageDetails->created_on,
-                    'IsRead' => (bool) $messageDetails->IsRead,
+                    'IsRead' => (bool)$messageDetails->IsRead,
                     'created_by' => [
                         'Id' => $messageDetails->created_by_id,
                         'Email' => $messageDetails->created_by_email,
@@ -369,12 +368,11 @@ class MessageController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'message submitted successfully with attachments.',
-                'data' => null,
+                'data' => null
             ]);
 
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred.',
@@ -383,7 +381,7 @@ class MessageController extends Controller
                 'line' => $th->getLine(),
             ]);
         }
-        // url: http://localhost:8000/api/V1/common/submit-service-request
+        //url: http://localhost:8000/api/V1/common/submit-service-request
     }
 
     public function replyMessage(Request $request)
@@ -399,21 +397,22 @@ class MessageController extends Controller
             // change the status of the message
             // 'reply_status' => 'required|integer',
         ]);
-        Log::info('Validation done');
+        Log::info("Validation done");
         try {
             // Start transaction
             $this->bk_db->beginTransaction();
             // get the user id from the email
 
-            $default = new StandardFunctions;
+            $default = new StandardFunctions();
 
             $user_id = $default->get_user_id($request->reply_created_by);
 
-            if (! $user_id) {
+
+            if (!$user_id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ]);
             }
 
@@ -432,7 +431,6 @@ class MessageController extends Controller
 
                 if ($response['success'] == false) {
                     $this->bk_db->rollBack();
-
                     return response()->json($response);
                 }
             }
@@ -447,8 +445,9 @@ class MessageController extends Controller
                 ->where('Id', $request->message_id)
                 ->first();
 
+
             // notify the user that the message has been replied
-            $notifs = new NotificationController;
+            $notifs = new NotificationController();
             $notification_status = $notifs->createNotification(
                 //  $service_request->created_by,
                 $user_id->Id,
@@ -460,7 +459,6 @@ class MessageController extends Controller
 
             if ($notification_status['success'] == false) {
                 $this->bk_db->rollBack();
-
                 return response()->json($notification_status);
             }
 
@@ -481,7 +479,7 @@ class MessageController extends Controller
                     'assignee.Id as assigned_to_id',
                     'assignee.Email as assigned_to_email',
                     'assignee.FirstName as assigned_to_first_name',
-                    'assignee.OtherNames as assigned_to_other_names',
+                    'assignee.OtherNames as assigned_to_other_names'
                 ])
                 ->first();
 
@@ -496,7 +494,7 @@ class MessageController extends Controller
                     'creator.Id as created_by_id',
                     'creator.Email as created_by_email',
                     'creator.FirstName as created_by_first_name',
-                    'creator.OtherNames as created_by_other_names',
+                    'creator.OtherNames as created_by_other_names'
                 ])
                 ->first();
 
@@ -550,12 +548,11 @@ class MessageController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Message reply submitted successfully with attachments.',
-                'data' => null,
+                'data' => null
             ]);
 
         } catch (\Throwable $th) {
             $this->bk_db->rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred.',
@@ -572,7 +569,7 @@ class MessageController extends Controller
             // Validate request
             $request->validate([
                 'email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
-                'id' => 'required|integer', // Assuming 'id' is an integer
+                'id' => 'required|integer' // Assuming 'id' is an integer
             ]);
 
             // Use cached user details
@@ -590,7 +587,7 @@ class MessageController extends Controller
             if ($isRead == 1) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'message is already marked as read.',
+                    'message' => 'message is already marked as read.'
                 ]);
             }
 
@@ -606,13 +603,13 @@ class MessageController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Message marked as read successfully.',
+                'message' => 'Message marked as read successfully.'
             ]);
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while marking the message as read.',
-                'data' => $th->getMessage(),
+                'data' => $th->getMessage()
             ], 500);
         }
     }
@@ -629,11 +626,11 @@ class MessageController extends Controller
             // Use cached message thread
             $thread = CacheService::getMessageThread($request->message_id);
 
-            if (! $thread) {
+            if (!$thread) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Message not found.',
-                    'data' => null,
+                    'data' => null
                 ], 404);
             }
 
@@ -649,8 +646,8 @@ class MessageController extends Controller
                 'success' => true,
                 'message' => 'message thread fetched successfully.',
                 'data' => [
-                    'thread' => $thread,
-                ],
+                    'thread' => $thread
+                ]
             ]);
 
         } catch (\Throwable $th) {
@@ -665,7 +662,7 @@ class MessageController extends Controller
         }
     }
 
-    // get message participants
+    //get message participants
     public function getMessageParticipants(Request $request)
     {
         // Validate the incoming request
@@ -681,7 +678,7 @@ class MessageController extends Controller
                 'success' => true,
                 'message' => 'message participants fetched successfully.',
                 'data' => $participants['data'],
-                'admins' => $participants['admins'],
+                'admins' => $participants['admins']
             ]);
 
         } catch (\Throwable $th) {
@@ -705,13 +702,13 @@ class MessageController extends Controller
 
         try {
             // get the user id
-            $default = new StandardFunctions;
+            $default = new StandardFunctions();
 
             $user_id = $default->get_user_id($request->email);
 
             $role_id = $this->bk_db->table('userroles')
-                ->where('User', $user_id->Id)
-                ->value('Role');
+                            ->where('User', $user_id->Id)
+                            ->value('Role');
 
             // Fetch all messages by the user
             $messages = $this->bk_db->table('message')
@@ -833,9 +830,10 @@ class MessageController extends Controller
                 'message' => 'messages fetched successfully.',
                 'data' => [
                     'created_messages' => $messages,
-                    'received_messages' => $other_requests,
-                ],
+                    'received_messages' => $other_requests
+                ]
             ]);
+
 
         } catch (\Throwable $th) {
             return response()->json([
@@ -844,7 +842,7 @@ class MessageController extends Controller
                 'data' => $th->getMessage(),
                 'file' => $th->getFile(),
                 'line' => $th->getLine(),
-            ], 401);
+            ],401);
         }
     }
 
@@ -868,7 +866,7 @@ class MessageController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Unread messages with thread information fetched successfully.',
-                'data' => $messages,
+                'data' => $messages
             ]);
 
         } catch (\Throwable $th) {
@@ -899,7 +897,7 @@ class MessageController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'message closed successfully.',
-                'data' => null,
+                'data' => null
             ]);
 
         } catch (\Throwable $th) {
@@ -921,10 +919,10 @@ class MessageController extends Controller
         try {
             $user_id = $request->user_id ?? $request->header('user-id');
 
-            if (! $user_id) {
+            if (!$user_id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'User ID is required',
+                    'message' => 'User ID is required'
                 ], 400);
             }
 
@@ -938,9 +936,9 @@ class MessageController extends Controller
             // Count unread message replies
             $unreadReplies = $this->bk_db->table('messagereplies as mr')
                 ->join('message as m', 'm.Id', '=', 'mr.MessageId')
-                ->where(function ($query) use ($user_id) {
+                ->where(function($query) use ($user_id) {
                     $query->where('m.AssignedTo', $user_id)
-                        ->orWhere('m.created_by', $user_id);
+                          ->orWhere('m.created_by', $user_id);
                 })
                 ->where('mr.IsRead', 0)
                 ->where('mr.IsDelete', 0)
@@ -954,15 +952,14 @@ class MessageController extends Controller
                 'unread_count' => $totalUnread,
                 'unread_messages' => $unreadMessages,
                 'unread_replies' => $unreadReplies,
-                'timestamp' => now()->toISOString(),
+                'timestamp' => now()->toISOString()
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error getting unread messages count: '.$e->getMessage());
-
+            Log::error('Error getting unread messages count: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to get unread messages count',
+                'message' => 'Failed to get unread messages count'
             ], 500);
         }
     }
@@ -976,10 +973,10 @@ class MessageController extends Controller
             $user_id = $request->user_id ?? $request->header('user-id');
             $since = $request->since; // timestamp to get messages since
 
-            if (! $user_id) {
+            if (!$user_id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'User ID is required',
+                    'message' => 'User ID is required'
                 ], 400);
             }
 
@@ -997,11 +994,11 @@ class MessageController extends Controller
                     'creator.Email as creator_email',
                     'assignee.FirstName as assignee_first_name',
                     'assignee.LastName as assignee_last_name',
-                    'assignee.Email as assignee_email',
+                    'assignee.Email as assignee_email'
                 ])
-                ->where(function ($query) use ($user_id) {
+                ->where(function($query) use ($user_id) {
                     $query->where('m.AssignedTo', $user_id)
-                        ->orWhere('m.created_by', $user_id);
+                          ->orWhere('m.created_by', $user_id);
                 })
                 ->where('m.IsDelete', 0)
                 ->orderBy('m.created_on', 'desc')
@@ -1026,11 +1023,11 @@ class MessageController extends Controller
                     'm.Description as original_message',
                     'creator.FirstName as creator_first_name',
                     'creator.LastName as creator_last_name',
-                    'creator.Email as creator_email',
+                    'creator.Email as creator_email'
                 ])
-                ->where(function ($query) use ($user_id) {
+                ->where(function($query) use ($user_id) {
                     $query->where('m.AssignedTo', $user_id)
-                        ->orWhere('m.created_by', $user_id);
+                          ->orWhere('m.created_by', $user_id);
                 })
                 ->where('mr.IsDelete', 0)
                 ->orderBy('mr.created_on', 'desc')
@@ -1046,15 +1043,14 @@ class MessageController extends Controller
                 'success' => true,
                 'messages' => $messages,
                 'replies' => $replies,
-                'timestamp' => now()->toISOString(),
+                'timestamp' => now()->toISOString()
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error getting recent messages: '.$e->getMessage());
-
+            Log::error('Error getting recent messages: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to get recent messages',
+                'message' => 'Failed to get recent messages'
             ], 500);
         }
     }
@@ -1068,10 +1064,10 @@ class MessageController extends Controller
             $message_id = $request->message_id;
             $since = $request->since; // timestamp to get updates since
 
-            if (! $message_id) {
+            if (!$message_id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Message ID is required',
+                    'message' => 'Message ID is required'
                 ], 400);
             }
 
@@ -1086,7 +1082,7 @@ class MessageController extends Controller
                     'mr.created_on',
                     'creator.FirstName as creator_first_name',
                     'creator.LastName as creator_last_name',
-                    'creator.Email as creator_email',
+                    'creator.Email as creator_email'
                 ])
                 ->where('mr.MessageId', $message_id)
                 ->where('mr.IsDelete', 0)
@@ -1102,15 +1098,14 @@ class MessageController extends Controller
                 'success' => true,
                 'new_replies' => $newReplies,
                 'count' => $newReplies->count(),
-                'timestamp' => now()->toISOString(),
+                'timestamp' => now()->toISOString()
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error getting message thread updates: '.$e->getMessage());
-
+            Log::error('Error getting message thread updates: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to get message thread updates',
+                'message' => 'Failed to get message thread updates'
             ], 500);
         }
     }

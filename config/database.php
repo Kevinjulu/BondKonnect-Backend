@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'bk_api_db'),
+    'default' => env('DB_CONNECTION', 'sqlite'),
 
     /*
     |--------------------------------------------------------------------------
@@ -74,9 +74,9 @@ return [
                 'dev' => env('DB_PASSWORD_DEV'),
                 default => env('DB_PASSWORD'),
                 'options' => extension_loaded('pdo_mysql') ? array_filter([
-                    PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-                    PDO::MYSQL_ATTR_INIT_COMMAND => 'SET SESSION lower_case_table_names=1',
-                ]) : [],
+        PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+        PDO::MYSQL_ATTR_INIT_COMMAND => 'SET SESSION lower_case_table_names=1',
+    ]) : [],
             },
 
             'unix_socket' => env('DB_SOCKET', ''),
@@ -150,6 +150,7 @@ return [
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ],
         ],
+
 
         'mariadb' => [
             'driver' => 'mariadb',

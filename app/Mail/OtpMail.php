@@ -5,24 +5,22 @@ namespace App\Mail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-
+use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Contracts\Queue\ShouldQueue;
 class OtpMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public $otp;
-
     public $name;
-
     public $email;
 
     public function __construct($data)
     {
-        $this->otp = $data['otp'];
-        $this->name = $data['name'];
-        $this->email = $data['email'];
+        $this->otp = $data["otp"];
+        $this->name = $data["name"];
+        $this->email = $data["email"];
     }
 
     // public function build()
@@ -32,7 +30,7 @@ class OtpMail extends Mailable
     //                     'otp' => $this->otp,
     //                 ]);
     // }
-    /**
+        /**
      * Get the message envelope.
      */
     public function envelope(): Envelope
@@ -52,8 +50,8 @@ class OtpMail extends Mailable
         return new Content(
             view: 'emails.otp',
             with: ['otp' => $this->otp,
-                'name' => $this->name,
-                'email' => $this->email,
+            'name'=> $this->name,
+            'email'=>$this->email,
 
             ]
         );

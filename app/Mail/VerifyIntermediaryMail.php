@@ -5,8 +5,9 @@ namespace App\Mail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
 class VerifyIntermediaryMail extends Mailable
 {
@@ -19,12 +20,11 @@ class VerifyIntermediaryMail extends Mailable
     // public $name;
 
     public $email;
-
     public function __construct($data)
     {
-        $this->link = $data['verification_link'];
+        $this->link=$data["verification_link"];
         // $this->name=$data["name"];
-        $this->email = $data['email'];
+        $this->email=$data["email"];
     }
 
     /**
@@ -45,8 +45,8 @@ class VerifyIntermediaryMail extends Mailable
         return new Content(
             view: 'emails.verification_intermediary_email',
             with: ['link' => $this->link,
-                // 'name'=> $this->name,
-                'email' => $this->email,
+            // 'name'=> $this->name,
+            'email'=>$this->email,
 
             ]
         );

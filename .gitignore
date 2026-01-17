@@ -1,21 +1,3 @@
-# Local environment
-.env
-.env.local
-
-# Composer vendor
-/vendor/
-
-# PHPStorm / IDE
-.idea/
-
-# Build and log files
-../build_output_backend.txt
-build_output_backend.txt
-*.log
-
-# Storage and cache
-/storage/logs/
-/bootstrap/cache/*.php
 /.phpunit.cache
 /node_modules
 /public/build

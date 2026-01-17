@@ -5,8 +5,9 @@ namespace App\Mail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
 class PromotionalMail extends Mailable
 {
@@ -16,20 +17,17 @@ class PromotionalMail extends Mailable
      * Create a new message instance.
      */
     public $email;
-
     public $subject;
-
     public $body;
-
     public $name;
 
     public function __construct($data)
     {
         //
-        $this->email = $data['email'];
-        $this->subject = $data['general_subject'];
-        $this->body = $data['general_body'];
-        $this->name = $data['name'];
+        $this->email=$data["email"];
+        $this->subject=$data["general_subject"];
+        $this->body=$data["general_body"];
+        $this->name=$data["name"];
     }
 
     /**
@@ -50,9 +48,9 @@ class PromotionalMail extends Mailable
         return new Content(
             view: 'emails.promo_mail',
             with: ['general_subject' => $this->subject,
-                'general_body' => $this->body,
-                'name' => $this->name,
-                'email' => $this->email,
+            'general_body'=> $this->body,
+            'name'=>$this->name,
+            'email'=>$this->email,
 
             ]
         );

@@ -2,12 +2,13 @@
 
 namespace App\Mail;
 
+use Log;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Log;
+use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
 class Verificationlink extends Mailable
 {
@@ -17,16 +18,15 @@ class Verificationlink extends Mailable
      * Create a new message instance.
      */
     public $link;
-
     public $name;
 
     public $email;
 
     public function __construct($data)
     {
-        $this->link = $data['verification_link'];
-        $this->name = $data['name'];
-        $this->email = $data['email'];
+        $this->link=$data["verification_link"];
+        $this->name=$data["name"];
+        $this->email=$data["email"];
     }
 
     /**
@@ -49,8 +49,8 @@ class Verificationlink extends Mailable
         return new Content(
             view: 'emails.verification_email',
             with: ['link' => $this->link,
-                'name' => $this->name,
-                'email' => $this->email,
+            'name'=> $this->name,
+            'email'=>$this->email,
 
             ]
         );

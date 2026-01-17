@@ -1,20 +1,20 @@
-<?php
+﻿<?php
 
-use App\Http\Controllers\V1\Admin\CacheController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\V1\Auth\AuthController;
+use App\Http\Controllers\V1\Admin\CacheController;
 use App\Http\Controllers\V1\Bonds\BondsController;
+use App\Http\Controllers\V1\Defaults\UserManagement;
 use App\Http\Controllers\V1\Bonds\DataUploadController;
-use App\Http\Controllers\V1\Defaults\CommunicationManagement;
 use App\Http\Controllers\V1\Defaults\MessageController;
 use App\Http\Controllers\V1\Defaults\StandardFunctions;
 use App\Http\Controllers\V1\Financials\FinancialController;
 use App\Http\Controllers\V1\Financials\MpesaController;
 use App\Http\Controllers\V1\Financials\PaypalController;
-use App\Http\Controllers\V1\Notifications\NotificationController;
-// ... other imports
+use App\Http\Controllers\V1\Defaults\CommunicationManagement;
 use App\Http\Controllers\V1\RoleActions\PermissionManagement;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\V1\Notifications\NotificationController;
 
 // Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 //     return $request->user();
@@ -23,20 +23,20 @@ Route::get('/', function () {
     return ['Laravel' => app()->version()];
 });
 
-// v1(Authentication)
+//v1(Authentication)
 Route::group(
     [
-        'prefix' => 'V1/auth',
-        'middleware' => ['api'],
+      'prefix' => 'V1/auth',
+
     ],
     function () {
         Route::get('testDBDR', [AuthController::class, 'dbDR']);
-        Route::post('user-register', [AuthController::class, 'registerUsers'])->middleware('throttle:5,1');
-        Route::post('set-password', [AuthController::class, 'setPassword'])->middleware('throttle:5,1');
-        Route::post('user-login', [AuthController::class, 'loginUser'])->middleware('throttle:5,1');
-        Route::post('verify-otp', [AuthController::class, 'otpVerification'])->middleware('throttle:5,1');
-        Route::post('user-reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
-        Route::post('resend-otp', [AuthController::class, 'otpResend'])->middleware('throttle:5,1');
+        Route::post('user-register', [AuthController::class, 'registerUsers']);
+        Route::post('set-password', [AuthController::class, 'setPassword']);
+        Route::post('user-login', [AuthController::class, 'loginUser']);
+        Route::post('verify-otp', [AuthController::class, 'otpVerification']);
+        Route::post('user-reset-password', [AuthController::class, 'resetPassword']);
+        Route::post('resend-otp', [AuthController::class, 'otpResend']);
         Route::post('user-logout', [AuthController::class, 'logoutUser']);
         Route::post('delegate-user-leave', [AuthController::class, 'delegateUserLeave']);
         Route::post('get-user-details', [AuthController::class, 'getCurrentUserDetails']);
@@ -54,16 +54,18 @@ Route::group(
         Route::get('get-user-intermediaries', [AuthController::class, 'getUserIntermediaries']);
         Route::get('concurrent-users', [AuthController::class, 'getConcurrentUsers']);
     }
-);
+  );
 
-// V1/services(Bonds services)
+
+
+//V1/services(Bonds services)
 Route::group(
     [
-        'prefix' => 'V1/services',
+      'prefix' => 'V1/services',
 
     ],
     function () {
-        // bonds
+        //bonds
 
         // Route::get('upload-csv', [BondsController::class, 'uploadCsv']);
         Route::post('total-return-screen', [BondsController::class, 'getTotalReturnScreen']);
@@ -72,16 +74,16 @@ Route::group(
         Route::post('stats-table', [BondsController::class, 'getStatsTable']);
         Route::get('get-bondCalc-Details', [BondsController::class, 'getBondCalculatorDetails']);
 
-        Route::get('get-secondary-market-bonds', [BondsController::class, 'getSecondaryMarketBonds']);
-        Route::get('get-primary-market-bonds', [BondsController::class, 'getPrimaryMarketBonds']);
-        Route::get('get-bond-market-performance', [BondsController::class, 'getBondMarketPerformance']);
-        Route::get('get-spot-yield-curve', [BondsController::class, 'getSpotYieldCurve']);
-        Route::get('get-projection-bands', [BondsController::class, 'projectionBands']);
-        Route::get('get-historical-bands', [BondsController::class, 'historicalBands']);
-        Route::get('get-table-params', [BondsController::class, 'getTableParams']);
-        // Quotes management
+        Route::get ('get-secondary-market-bonds', [BondsController::class, 'getSecondaryMarketBonds']);
+        Route::get ('get-primary-market-bonds', [BondsController::class, 'getPrimaryMarketBonds']);
+        Route::get ('get-bond-market-performance', [BondsController::class, 'getBondMarketPerformance']);
+        Route::get ('get-spot-yield-curve', [BondsController::class, 'getSpotYieldCurve']);
+        Route::get ('get-projection-bands', [BondsController::class, 'projectionBands']);
+        Route::get ('get-historical-bands', [BondsController::class, 'historicalBands']);
+        Route::get ('get-table-params', [BondsController::class, 'getTableParams']);
+        //Quotes management
         Route::post('create-quote', [BondsController::class, 'createQuote']);
-        Route::post('get-all-quotes', [BondsController::class, 'getQuotes']);    // Using Now
+        Route::post('get-all-quotes', [BondsController::class, 'getQuotes']);    //Using Now
         Route::post('get-all-active-quotes', [BondsController::class, 'getActiveQuotes']);
         Route::post('get-quotes-user', [BondsController::class, 'getUserQuotes']);
         Route::post('get-viewing-party-quotes', [BondsController::class, 'getViewingPartyQuotes']);
@@ -89,7 +91,7 @@ Route::group(
         Route::post('activate-quote', [BondsController::class, 'activateQuote']);
         Route::post('suspend-quote', [BondsController::class, 'suspendQuote']);
         Route::post('update-quote', [BondsController::class, 'updateQuote']);
-        Route::post('create-transaction', [BondsController::class, 'createTransaction']); // -- url: /V1/services/create-transaction
+        Route::post('create-transaction', [BondsController::class, 'createTransaction']); //-- url: /V1/services/create-transaction
         Route::post('mark-transaction-status', [BondsController::class, 'markTransactionStatus']);
         Route::post('get-all-transactions', [BondsController::class, 'getAllTransactions']);
         Route::post('get-all-transactions-per-quote', [BondsController::class, 'getAllTransactionsPerQuote']);
@@ -97,7 +99,7 @@ Route::group(
         Route::post('get-sent-transactions', [BondsController::class, 'getSentTransactions']);
         Route::post('get-delegated-transactions', [BondsController::class, 'getDelegatedTransactions']);
 
-        // Portfolio management
+        //Portfolio management
         Route::post('add-new-portfolio', [BondsController::class, 'addNewPortfolio']);
         Route::post('get-user-portfolios', [BondsController::class, 'getUserPortfolios']);
         Route::post('manage-portfolio', [BondsController::class, 'manageBondsInPortfolio']);
@@ -105,18 +107,21 @@ Route::group(
         Route::post('update-portfolio', [BondsController::class, 'updatePortfolio']);
         Route::get('export-portfolio-excel', [BondsController::class, 'exportPortfolioExcel']);
 
-    }
-);
 
-// V1/communication (Has notifications, Messages, etc)
+
+    }
+  );
+
+
+//V1/communication (Has notifications, Messages, etc)
 
 Route::group(
     [
-        'prefix' => 'V1/communication',
+      'prefix' => 'V1/communication',
 
     ],
     function () {
-        // messages
+        //messages
         Route::post('send-message', [MessageController::class, 'sendMessage']);
         Route::post('reply-message', [MessageController::class, 'replyMessage']);
 
@@ -133,7 +138,7 @@ Route::group(
         Route::get('recent-messages', [MessageController::class, 'getRecentMessages']);
         Route::get('message-thread-updates', [MessageController::class, 'getMessageThreadUpdates']);
 
-        // notifications
+        //notifications
         Route::get('get-unread-notifications', [NotificationController::class, 'getUnreadNotifications']);
         Route::get('get-all-notifications', [NotificationController::class, 'getAllNotifications']);
         Route::post('mark-all-as-read', [NotificationController::class, 'markAllNotificationsAsRead']);
@@ -144,23 +149,23 @@ Route::group(
         Route::get('unread-count', [NotificationController::class, 'getUnreadCount']);
         Route::get('recent-notifications', [NotificationController::class, 'getRecentNotifications']);
 
-        // emails
+        //emails
         Route::post('create-email', [CommunicationManagement::class, 'createEmail']);
         Route::get('get-email-templates', [CommunicationManagement::class, 'getEmailTemplates']);
         Route::get('get-recipients-by-role', [CommunicationManagement::class, 'getRecipientsByRole']);
         Route::post('preview-template', [CommunicationManagement::class, 'previewTemplate']);
     }
-);
+  );
 
-// V1/Permissions
+//V1/Permissions
 
 Route::group(
     [
-        'prefix' => 'V1/permissions',
-        //   'middleware' => [
-        //     CheckClientCredentials::class,
-        //     //'throttle:30,1'
-        //   ]
+      'prefix' => 'V1/permissions',
+    //   'middleware' => [
+    //     CheckClientCredentials::class,
+    //     //'throttle:30,1'
+    //   ]
     ],
     function () {
         Route::get('get-user-permissions', [PermissionManagement::class, 'getUserPermissions']);
@@ -172,15 +177,16 @@ Route::group(
         Route::get('get-users-by-role', [PermissionManagement::class, 'getUsersByRole']);
         Route::get('get-roles', [PermissionManagement::class, 'getRoles']);
     }
-);
+  );
 
-Route::group(
+
+  Route::group(
     [
-        'prefix' => 'V1/financials',
-        //   'middleware' => [
-        //     CheckClientCredentials::class,
-        //     //'throttle:30,1'
-        //   ]
+      'prefix' => 'V1/financials',
+    //   'middleware' => [
+    //     CheckClientCredentials::class,
+    //     //'throttle:30,1'
+    //   ]
     ],
     function () {
         Route::post('add-subscription-plan', [FinancialController::class, 'addSubscriptionPlan']);
@@ -196,10 +202,11 @@ Route::group(
         Route::get('get-all-sub-features', [FinancialController::class, 'getAllFeatures']);
         Route::get('get-all-feature-categories', [FinancialController::class, 'getAllFeatureCategories']);
 
-    }
-);
 
-// V1/payments (M-Pesa, PayPal, etc)
+    }
+  );
+
+//V1/payments (M-Pesa, PayPal, etc)
 Route::group(
     [
         'prefix' => 'V1/payments',
@@ -215,10 +222,10 @@ Route::group(
     }
 );
 
-// V1/admin (Admin operations including cache management)
+//V1/admin (Admin operations including cache management)
 Route::group(
     [
-        'prefix' => 'V1/admin',
+      'prefix' => 'V1/admin',
     ],
     function () {
         // Cache Management Routes
@@ -227,4 +234,5 @@ Route::group(
         Route::post('cache/clear-user', [CacheController::class, 'clearUserCache']);
         Route::post('cache/warm-up-user', [CacheController::class, 'warmUpUserCache']);
     }
-);
+  );
+

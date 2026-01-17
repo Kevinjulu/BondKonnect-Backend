@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -16,20 +17,17 @@ class SubscriptionsMail extends Mailable
      * Create a new message instance.
      */
     public $email;
-
     public $name;
-
     public $subject;
-
     public $body;
-
     public function __construct($data)
     {
-        $this->email = $data['email'];
-        $this->subject = $data['general_subject'];
-        $this->body = $data['general_body'];
-        $this->name = $data['name'];
+        $this->email=$data["email"];
+        $this->subject=$data["general_subject"];
+        $this->body=$data["general_body"];
+        $this->name=$data["name"];
     }
+
 
     /**
      * Get the message envelope.
@@ -49,9 +47,9 @@ class SubscriptionsMail extends Mailable
         return new Content(
             view: 'email.subscriptions_mail',
             with: ['general_subject' => $this->subject,
-                'general_body' => $this->body,
-                'name' => $this->name,
-                'email' => $this->email,
+            'general_body'=> $this->body,
+            'name'=>$this->name,
+            'email'=>$this->email,
 
             ]
         );

@@ -1,14 +1,13 @@
 <?php
 
 namespace App\Http\Controllers\V1\Notifications;
-
-use App\Events\NotificationSent;
-use App\Http\Controllers\Controller;
-use App\Http\Controllers\V1\Defaults\StandardFunctions;
-use App\Services\CacheService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use App\Services\CacheService;
+use App\Events\NotificationSent;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\V1\Defaults\StandardFunctions;
 
 class NotificationController extends Controller
 {
@@ -16,16 +15,16 @@ class NotificationController extends Controller
     {
         try {
             $request->validate([
-                'email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+                'email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email'
             ]);
 
             // Use cached user details
             $user_id = CacheService::getUserDetails($request->email);
-            if (! $user_id) {
+            if(!$user_id){
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found.',
-                    'data' => null,
+                    'data' => null
                 ], 404);
             }
 
@@ -36,20 +35,20 @@ class NotificationController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'No unread notifications found.',
-                    'data' => null,
+                    'data' => null
                 ], 200);
             }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Notifications fetched successfully.',
-                'data' => $notifications,
+                'data' => $notifications
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while fetching notifications.',
-                'data' => $th->getMessage(),
+                'data' => $th->getMessage()
             ], 500);
         }
     }
@@ -58,7 +57,7 @@ class NotificationController extends Controller
     {
         try {
             $request->validate([
-                'email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+                'email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email'
             ]);
 
             // Use cached user details
@@ -71,29 +70,28 @@ class NotificationController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'No notifications found.',
-                    'data' => null,
+                    'data' => null
                 ], 200);
             }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Notifications fetched successfully.',
-                'data' => $notifications,
+                'data' => $notifications
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while fetching notifications.',
-                'data' => $th->getMessage(),
+                'data' => $th->getMessage()
             ], 500);
         }
     }
-
     public function markAllNotificationsAsRead(Request $request)
     {
         try {
             $request->validate([
-                'email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+                'email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email'
             ]);
 
             // Use cached user details
@@ -103,7 +101,7 @@ class NotificationController extends Controller
                 ->table('notificationservices')
                 ->where('Recipient', $user_id->Id)
                 ->update([
-                    'IsRead' => true,
+                    'IsRead' => true
                 ]);
 
             // Clear notification cache after update
@@ -112,27 +110,26 @@ class NotificationController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'All notifications marked as read successfully.',
-                'data' => null,
+                'data' => null
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while marking all notifications as read.',
-                'data' => $th->getMessage(),
+                'data' => $th->getMessage()
             ], 500);
         }
     }
-
-    // send notification
+    //send notification
     public function sendNotification($recipient, $type, $message, $link, Request $request)
     {
         try {
             $request->validate([
-                'email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+                'email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email'
             ]);
 
             // gget the user id
-            $default = new StandardFunctions;
+            $default = new StandardFunctions();
             $user_id = $default->get_user_id($request->email);
 
             $this->bk_db
@@ -144,25 +141,26 @@ class NotificationController extends Controller
                     'Link' => $link,
                     'IsRead' => false,
                     'created_by' => $user_id->Id,
-                    'created_on' => date('Y-m-d H:i:s'),
+                    'created_on' => date('Y-m-d H:i:s')
                 ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Notification sent successfully.',
-                'data' => null,
+                'data' => null
             ], 200);
 
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while sending notification.',
-                'data' => $th->getMessage(),
+                'data' => $th->getMessage()
             ], 500);
         }
-        // url to send notification
-        // http://localhost:8000/api/V1/common/send-notification
+        //url to send notification
+        //http://localhost:8000/api/V1/common/send-notification
     }
+
 
     public function markOneNotificationsAsRead(Request $request)
     {
@@ -170,7 +168,7 @@ class NotificationController extends Controller
             // Validate request
             $request->validate([
                 'email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
-                'id' => 'required|integer', // Assuming 'id' is an integer
+                'id' => 'required|integer' // Assuming 'id' is an integer
             ]);
 
             // Use cached user details
@@ -188,7 +186,7 @@ class NotificationController extends Controller
             if ($isRead == 1) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Notification is already marked as read.',
+                    'message' => 'Notification is already marked as read.'
                 ]);
             }
 
@@ -203,17 +201,16 @@ class NotificationController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Notification marked as read successfully.',
+                'message' => 'Notification marked as read successfully.'
             ]);
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while marking the notification as read.',
-                'data' => $th->getMessage(),
+                'data' => $th->getMessage()
             ], 500);
         }
     }
-
     public function markOneNotificationsAsFavoriteOrArchive(Request $request)
     {
         try {
@@ -222,7 +219,7 @@ class NotificationController extends Controller
                 'email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
                 'notif_id' => 'required|integer', // Assuming 'id' is an integer
                 'action' => 'required|in:IsFavorite,IsArchive', // Action can be either IsFavorite or IsArchive
-                'value' => 'required|integer', // Value can be either 1 or 0
+                'value' => 'required|integer' // Value can be either 1 or 0
             ]);
 
             // Use cached user details
@@ -240,7 +237,7 @@ class NotificationController extends Controller
                 'notification_id' => $notificationId,
                 'user_id' => $user_id->Id,
                 'field' => $field,
-                'value' => $value,
+                'value' => $value
             ]);
 
             // First check if the notification exists
@@ -249,15 +246,14 @@ class NotificationController extends Controller
                 ->where('Recipient', $user_id->Id)
                 ->first();
 
-            if (! $notification) {
+            if (!$notification) {
                 Log::warning('Notification not found', [
                     'notification_id' => $notificationId,
-                    'user_id' => $user_id->Id,
+                    'user_id' => $user_id->Id
                 ]);
-
                 return response()->json([
                     'success' => false,
-                    'message' => 'Notification not found or does not belong to this user.',
+                    'message' => 'Notification not found or does not belong to this user.'
                 ], 404);
             }
 
@@ -266,13 +262,13 @@ class NotificationController extends Controller
 
             Log::info('Current value of notification', [
                 'notification_id' => $notificationId,
-                'current_value' => $currentValue,
+                'current_value' => $currentValue
             ]);
 
             if ($currentValue == $value) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Notification is already marked as '.$request->action.'.',
+                    'message' => 'Notification is already marked as ' . $request->action . '.'
                 ]);
             }
 
@@ -285,7 +281,7 @@ class NotificationController extends Controller
             // Log the update result
             Log::info('Update result', [
                 'notification_id' => $notificationId,
-                'rows_affected' => $updateResult,
+                'rows_affected' => $updateResult
             ]);
 
             // Verify the update
@@ -296,7 +292,7 @@ class NotificationController extends Controller
 
             Log::info('Updated value of notification', [
                 'notification_id' => $notificationId,
-                'updated_value' => $updatedValue,
+                'updated_value' => $updatedValue
             ]);
 
             // Clear notification cache after update
@@ -304,28 +300,29 @@ class NotificationController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Notification marked as '.$request->action.' successfully.',
-                'data' => $request->action,
+                'message' => 'Notification marked as ' . $request->action . ' successfully.',
+                'data' => $request->action
             ]);
         } catch (\Throwable $th) {
             Log::error('Error updating notification', [
                 'error' => $th->getMessage(),
                 'file' => $th->getFile(),
-                'line' => $th->getLine(),
+                'line' => $th->getLine()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while marking the notification as '.$request->action.'.',
+                'message' => 'An error occurred while marking the notification as ' . $request->action . '.',
                 'data' => $th->getMessage(),
                 'file' => $th->getFile(),
-                'line' => $th->getLine(),
+                'line' => $th->getLine()
             ], 500);
         }
     }
 
+
     // private function to create a notification
-    public function createNotification($user_id, $notification_type, $notification_message, $notification_link, $action_recipient_id)
+    public function createNotification($user_id, $notification_type, $notification_message, $notification_link,$action_recipient_id)
     {
         try {
             $notificationId = $this->bk_db->table('notificationservices')->insertGetId([
@@ -333,7 +330,7 @@ class NotificationController extends Controller
                 'Type' => $notification_type,
                 'Message' => $notification_message,
                 'Link' => $notification_link,
-                'ActionRecipientId' => $action_recipient_id,
+                'ActionRecipientId' => $action_recipient_id ,
                 'IsRead' => false,
                 'IsArchive' => false,
                 'IsFavorite' => false,
@@ -360,86 +357,85 @@ class NotificationController extends Controller
             return [
                 'success' => true,
                 'message' => 'Notification created successfully',
-                'data' => null,
+                'data' => null
             ];
 
         } catch (\Throwable $th) {
-            // throw $th;
+            //throw $th;
             return [
                 'success' => false,
                 'message' => 'Error creating notification',
-                'data' => $th->getMessage(),
+                'data' => $th->getMessage()
             ];
         }
     }
+//post request to create notification
+public function sendUserNotification(Request $request)
+{
+    try {
+        $request->validate([
+            'email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
+            'notification_type' => 'required|string',
+            'notification_message' => 'required|string',
+            'notification_link' => 'nullable|string',
+            'action_recipient_id' => 'nullable|integer',
+        ]);
 
-    // post request to create notification
-    public function sendUserNotification(Request $request)
-    {
-        try {
-            $request->validate([
-                'email' => 'required|email|exists:bk_db.portaluserlogoninfo,Email',
-                'notification_type' => 'required|string',
-                'notification_message' => 'required|string',
-                'notification_link' => 'nullable|string',
-                'action_recipient_id' => 'nullable|integer',
-            ]);
+        // Get the user id
+        $user_id = CacheService::getUserDetails($request->email);
 
-            // Get the user id
-            $user_id = CacheService::getUserDetails($request->email);
-
-            if (! $user_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User not found.',
-                    'data' => null,
-                ], 404);
-            }
-
-            // Insert notification into database
-            $notificationId = $this->bk_db->table('notificationservices')->insertGetId([
-                'Recipient' => $user_id->Id,
-                'Type' => $request->notification_type,
-                'Message' => $request->notification_message,
-                'Link' => $request->notification_link,
-                'ActionRecipientId' => $request->action_recipient_id,
-                'IsRead' => false,
-                'IsArchive' => false,
-                'IsFavorite' => false,
-                'created_on' => Carbon::now(),
-            ]);
-
-            // Prepare notification data for broadcasting
-            $notificationData = [
-                'notification_id' => $notificationId,
-                'notification_type' => $request->notification_type,
-                'notification_message' => $request->notification_message,
-                'notification_date' => Carbon::now()->toISOString(),
-                'notification_link' => $request->notification_link,
-                'IsRead' => false,
-                'client_email' => $request->action_recipient_id ? $this->bk_db->table('portaluserlogoninfo')->where('Id', $request->action_recipient_id)->value('Email') : null,
-            ];
-
-            // Broadcast the notification event
-            broadcast(new NotificationSent($notificationData, $user_id->Id));
-
-            // Clear notification cache for the recipient
-            CacheService::clearNotificationCache($user_id->Id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Notification created successfully.',
-                'data' => null,
-            ], 200);
-
-        } catch (\Throwable $th) {
+        if(!$user_id){
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while creating notification.',
-                'data' => $th->getMessage(),
-            ], 500);
+                'message' => 'User not found.',
+                'data' => null
+            ], 404);
         }
+
+        // Insert notification into database
+        $notificationId = $this->bk_db->table('notificationservices')->insertGetId([
+            'Recipient' => $user_id->Id,
+            'Type' => $request->notification_type,
+            'Message' => $request->notification_message,
+            'Link' => $request->notification_link,
+            'ActionRecipientId' => $request->action_recipient_id,
+            'IsRead' => false,
+            'IsArchive' => false,
+            'IsFavorite' => false,
+            'created_on' => Carbon::now(),
+        ]);
+
+        // Prepare notification data for broadcasting
+        $notificationData = [
+            'notification_id' => $notificationId,
+            'notification_type' => $request->notification_type,
+            'notification_message' => $request->notification_message,
+            'notification_date' => Carbon::now()->toISOString(),
+            'notification_link' => $request->notification_link,
+            'IsRead' => false,
+            'client_email' => $request->action_recipient_id ? $this->bk_db->table('portaluserlogoninfo')->where('Id', $request->action_recipient_id)->value('Email') : null,
+        ];
+
+        // Broadcast the notification event
+        broadcast(new NotificationSent($notificationData, $user_id->Id));
+
+        // Clear notification cache for the recipient
+        CacheService::clearNotificationCache($user_id->Id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification created successfully.',
+            'data' => null
+        ], 200);
+
+    } catch (\Throwable $th) {
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred while creating notification.',
+            'data' => $th->getMessage()
+        ], 500);
     }
+}
 
     /**
      * Get unread notifications count for polling
@@ -449,10 +445,10 @@ class NotificationController extends Controller
         try {
             $user_id = $request->user_id ?? $request->header('user-id');
 
-            if (! $user_id) {
+            if (!$user_id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'User ID is required',
+                    'message' => 'User ID is required'
                 ], 400);
             }
 
@@ -464,15 +460,14 @@ class NotificationController extends Controller
             return response()->json([
                 'success' => true,
                 'unread_count' => $count,
-                'timestamp' => now()->toISOString(),
+                'timestamp' => now()->toISOString()
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error getting unread notifications count: '.$e->getMessage());
-
+            Log::error('Error getting unread notifications count: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to get unread count',
+                'message' => 'Failed to get unread count'
             ], 500);
         }
     }
@@ -486,10 +481,10 @@ class NotificationController extends Controller
             $user_id = $request->user_id ?? $request->header('user-id');
             $since = $request->since; // timestamp to get notifications since
 
-            if (! $user_id) {
+            if (!$user_id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'User ID is required',
+                    'message' => 'User ID is required'
                 ], 400);
             }
 
@@ -507,16 +502,16 @@ class NotificationController extends Controller
             return response()->json([
                 'success' => true,
                 'notifications' => $notifications,
-                'timestamp' => now()->toISOString(),
+                'timestamp' => now()->toISOString()
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error getting recent notifications: '.$e->getMessage());
-
+            Log::error('Error getting recent notifications: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to get recent notifications',
+                'message' => 'Failed to get recent notifications'
             ], 500);
         }
     }
+
 }

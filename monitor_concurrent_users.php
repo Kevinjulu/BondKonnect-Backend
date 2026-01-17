@@ -10,7 +10,6 @@ require_once 'vendor/autoload.php';
 class ConcurrentUserMonitor
 {
     private $baseUrl;
-
     private $refreshInterval;
 
     public function __construct($baseUrl, $refreshInterval = 5)
@@ -27,10 +26,10 @@ class ConcurrentUserMonitor
         $curl = curl_init();
 
         curl_setopt_array($curl, [
-            CURLOPT_URL => $this->baseUrl.'/api/V1/auth/concurrent-users',
+            CURLOPT_URL => $this->baseUrl . '/api/V1/auth/concurrent-users',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => [
-                'Accept: application/json',
+                'Accept: application/json'
             ],
             CURLOPT_TIMEOUT => 10,
         ]);
@@ -54,7 +53,7 @@ class ConcurrentUserMonitor
         $formatted = [];
         foreach ($users as $user) {
             $name = $user['FirstName'] ?
-                $user['FirstName'].' '.($user['OtherNames'] ?? '') :
+                $user['FirstName'] . ' ' . ($user['OtherNames'] ?? '') :
                 $user['CompanyName'];
 
             $formatted[] = [
@@ -62,10 +61,9 @@ class ConcurrentUserMonitor
                 'Email' => $user['Email'],
                 'Last Login' => date('Y-m-d H:i:s', strtotime($user['LastLogOn'])),
                 'IP' => $user['IpAddress'],
-                'Browser' => $this->getBrowserName($user['UserAgent']),
+                'Browser' => $this->getBrowserName($user['UserAgent'])
             ];
         }
-
         return $formatted;
     }
 
@@ -74,19 +72,10 @@ class ConcurrentUserMonitor
      */
     private function getBrowserName($userAgent)
     {
-        if (strpos($userAgent, 'Chrome') !== false) {
-            return 'Chrome';
-        }
-        if (strpos($userAgent, 'Firefox') !== false) {
-            return 'Firefox';
-        }
-        if (strpos($userAgent, 'Safari') !== false) {
-            return 'Safari';
-        }
-        if (strpos($userAgent, 'Edge') !== false) {
-            return 'Edge';
-        }
-
+        if (strpos($userAgent, 'Chrome') !== false) return 'Chrome';
+        if (strpos($userAgent, 'Firefox') !== false) return 'Firefox';
+        if (strpos($userAgent, 'Safari') !== false) return 'Safari';
+        if (strpos($userAgent, 'Edge') !== false) return 'Edge';
         return 'Other';
     }
 
@@ -97,7 +86,6 @@ class ConcurrentUserMonitor
     {
         if (empty($users)) {
             echo "No active users found.\n";
-
             return;
         }
 
@@ -111,22 +99,22 @@ class ConcurrentUserMonitor
         $loginWidth = 19;
 
         // Header
-        echo str_repeat('-', $nameWidth + $emailWidth + $ipWidth + $browserWidth + $loginWidth + 16)."\n";
+        echo str_repeat('-', $nameWidth + $emailWidth + $ipWidth + $browserWidth + $loginWidth + 16) . "\n";
         printf("| %-{$nameWidth}s | %-{$emailWidth}s | %-{$ipWidth}s | %-{$browserWidth}s | %-{$loginWidth}s |\n",
-            'Name', 'Email', 'IP Address', 'Browser', 'Last Login');
-        echo str_repeat('-', $nameWidth + $emailWidth + $ipWidth + $browserWidth + $loginWidth + 16)."\n";
+               'Name', 'Email', 'IP Address', 'Browser', 'Last Login');
+        echo str_repeat('-', $nameWidth + $emailWidth + $ipWidth + $browserWidth + $loginWidth + 16) . "\n";
 
         // Data rows
         foreach ($formatted as $user) {
             printf("| %-{$nameWidth}s | %-{$emailWidth}s | %-{$ipWidth}s | %-{$browserWidth}s | %-{$loginWidth}s |\n",
-                substr($user['Name'], 0, $nameWidth),
-                substr($user['Email'], 0, $emailWidth),
-                $user['IP'],
-                $user['Browser'],
-                $user['Last Login']);
+                   substr($user['Name'], 0, $nameWidth),
+                   substr($user['Email'], 0, $emailWidth),
+                   $user['IP'],
+                   $user['Browser'],
+                   $user['Last Login']);
         }
 
-        echo str_repeat('-', $nameWidth + $emailWidth + $ipWidth + $browserWidth + $loginWidth + 16)."\n";
+        echo str_repeat('-', $nameWidth + $emailWidth + $ipWidth + $browserWidth + $loginWidth + 16) . "\n";
     }
 
     /**
@@ -147,7 +135,7 @@ class ConcurrentUserMonitor
             system('clear');
 
             echo "Concurrent User Monitor - Iteration {$iteration}\n";
-            echo 'Time: '.date('Y-m-d H:i:s')."\n";
+            echo "Time: " . date('Y-m-d H:i:s') . "\n";
             echo "==============================================\n\n";
 
             $data = $this->getConcurrentUsers();
@@ -177,7 +165,7 @@ class ConcurrentUserMonitor
             } else {
                 echo "❌ Error: Could not retrieve concurrent user data.\n";
                 if ($data && isset($data['message'])) {
-                    echo 'Message: '.$data['message']."\n";
+                    echo "Message: " . $data['message'] . "\n";
                 }
             }
 
@@ -196,7 +184,7 @@ if (isset($argv[1])) {
     exit(1);
 }
 
-$refreshInterval = isset($argv[2]) ? (int) $argv[2] : 5;
+$refreshInterval = isset($argv[2]) ? (int)$argv[2] : 5;
 
 $monitor = new ConcurrentUserMonitor($baseUrl, $refreshInterval);
 $monitor->monitor();
