@@ -181,6 +181,69 @@ class PermissionManagement extends Controller
                 }
             }
 
+            // --- Dynamic Permission Enforcement based on Subscription & Broker Status ---
+
+            // 1. Check for Active Subscription
+            // Assuming SubscriptionStatus 1 = ACTIVE. Check if DueDate is in the future.
+            $hasActiveSubscription = $this->bk_db->table('subscriptions')
+                ->where('User', $user->Id)
+                ->where('SubscriptionStatus', 1) // 1 = ACTIVE
+                ->where('DueDate', '>', Carbon::now())
+                ->exists();
+
+            if (!$hasActiveSubscription) {
+                // List of Research & Portfolio Module permissions to REVOKE if no subscription
+                $researchPermissions = [
+                    'CanAccessBondscreens',
+                    'CanAccessBondCalc',
+                    'CanViewYieldGraphs',
+                    'CanAccessDurationScreen',
+                    'CanAccessReturnScreen',
+                    'CanAccessBarbellScreen',
+                    'CanAccessResearchAssistant',
+                    'CanAccessResearchAssistantTools',
+                    'CanAccessBondStats',
+                    'CanViewBondStats',
+                    'CanAccessRiskMetrics',
+                    // Add others if strictly tied to subscription
+                ];
+
+                foreach ($researchPermissions as $perm) {
+                    if (isset($finalPermissions[$perm])) {
+                        $finalPermissions[$perm] = false;
+                    }
+                }
+            }
+
+            // 2. Check for Active Broker Sponsorship
+            // Check if user has an active relationship in portalintermediary
+            $hasActiveBroker = $this->bk_db->table('portalintermediary')
+                ->where('User', $user->Id)
+                ->where('IsActive', true)
+                ->exists();
+
+            if (!$hasActiveBroker) {
+                // List of Quote Book & Trading Module permissions to REVOKE if no broker sponsor
+                $tradingPermissions = [
+                    'CanManageQuotes',
+                    'CanSubmitBid',
+                    'CanAccessMyTransactions',
+                    // 'CanAccessAllTransactions', // Maybe keep viewing all? Flowchart says Quote Book Locked.
+                    'CanManageTransactions',
+                    'CanApproveQuote',
+                    'CanRejectQuote',
+                    'CanDelegateQuote',
+                ];
+
+                foreach ($tradingPermissions as $perm) {
+                    if (isset($finalPermissions[$perm])) {
+                        $finalPermissions[$perm] = false;
+                    }
+                }
+            }
+
+            // --------------------------------------------------------------------------
+
             // Convert to array of granted permissions for backward compatibility
             $grantedPermissions = [];
             foreach ($finalPermissions as $permName => $isGranted) {

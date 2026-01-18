@@ -69,46 +69,51 @@ Route::group(
     ],
     function () {
         //bonds
+        Route::middleware(['subscription'])->group(function () {
+            // Route::get('upload-csv', [BondsController::class, 'uploadCsv']);
+            Route::post('total-return-screen', [BondsController::class, 'getTotalReturnScreen']);
+            Route::post('total-duration-screen', [BondsController::class, 'getTotalDurationScreen']);
+            Route::post('barbell-bullet', [BondsController::class, 'getBarbellAndBullet']);
+            Route::post('stats-table', [BondsController::class, 'getStatsTable']);
+            Route::get('get-bondCalc-Details', [BondsController::class, 'getBondCalculatorDetails']);
 
-        // Route::get('upload-csv', [BondsController::class, 'uploadCsv']);
-        Route::post('total-return-screen', [BondsController::class, 'getTotalReturnScreen']);
-        Route::post('total-duration-screen', [BondsController::class, 'getTotalDurationScreen']);
-        Route::post('barbell-bullet', [BondsController::class, 'getBarbellAndBullet']);
-        Route::post('stats-table', [BondsController::class, 'getStatsTable']);
-        Route::get('get-bondCalc-Details', [BondsController::class, 'getBondCalculatorDetails']);
-
-        Route::get ('get-secondary-market-bonds', [BondsController::class, 'getSecondaryMarketBonds']);
-        Route::get ('get-primary-market-bonds', [BondsController::class, 'getPrimaryMarketBonds']);
-        Route::get ('get-bond-market-performance', [BondsController::class, 'getBondMarketPerformance']);
-        Route::get ('get-spot-yield-curve', [BondsController::class, 'getSpotYieldCurve']);
-        Route::get ('get-projection-bands', [BondsController::class, 'projectionBands']);
-        Route::get ('get-historical-bands', [BondsController::class, 'historicalBands']);
-        Route::get ('get-table-params', [BondsController::class, 'getTableParams']);
+            Route::get ('get-secondary-market-bonds', [BondsController::class, 'getSecondaryMarketBonds']);
+            Route::get ('get-primary-market-bonds', [BondsController::class, 'getPrimaryMarketBonds']);
+            Route::get ('get-bond-market-performance', [BondsController::class, 'getBondMarketPerformance']);
+            Route::get ('get-spot-yield-curve', [BondsController::class, 'getSpotYieldCurve']);
+            Route::get ('get-projection-bands', [BondsController::class, 'projectionBands']);
+            Route::get ('get-historical-bands', [BondsController::class, 'historicalBands']);
+            Route::get ('get-table-params', [BondsController::class, 'getTableParams']);
+        });
         //Quotes management
-        Route::post('create-quote', [BondsController::class, 'createQuote']);
-        Route::post('get-all-quotes', [BondsController::class, 'getQuotes']);    //Using Now
-        Route::post('get-all-active-quotes', [BondsController::class, 'getActiveQuotes']);
-        Route::post('get-quotes-user', [BondsController::class, 'getUserQuotes']);
-        Route::post('get-viewing-party-quotes', [BondsController::class, 'getViewingPartyQuotes']);
-        Route::post('get-delegated-quotes', [BondsController::class, 'delegatedQuotes']);
-        Route::post('activate-quote', [BondsController::class, 'activateQuote']);
-        Route::post('suspend-quote', [BondsController::class, 'suspendQuote']);
-        Route::post('update-quote', [BondsController::class, 'updateQuote']);
-        Route::post('create-transaction', [BondsController::class, 'createTransaction']); //-- url: /V1/services/create-transaction
-        Route::post('mark-transaction-status', [BondsController::class, 'markTransactionStatus']);
-        Route::post('get-all-transactions', [BondsController::class, 'getAllTransactions']);
-        Route::post('get-all-transactions-per-quote', [BondsController::class, 'getAllTransactionsPerQuote']);
-        Route::post('get-user-transactions', [BondsController::class, 'getUserTransactions']);
-        Route::post('get-sent-transactions', [BondsController::class, 'getSentTransactions']);
-        Route::post('get-delegated-transactions', [BondsController::class, 'getDelegatedTransactions']);
+        Route::middleware(['broker'])->group(function () {
+            Route::post('create-quote', [BondsController::class, 'createQuote']);
+            Route::post('get-all-quotes', [BondsController::class, 'getQuotes']);    //Using Now
+            Route::post('get-all-active-quotes', [BondsController::class, 'getActiveQuotes']);
+            Route::post('get-quotes-user', [BondsController::class, 'getUserQuotes']);
+            Route::post('get-viewing-party-quotes', [BondsController::class, 'getViewingPartyQuotes']);
+            Route::post('get-delegated-quotes', [BondsController::class, 'delegatedQuotes']);
+            Route::post('activate-quote', [BondsController::class, 'activateQuote']);
+            Route::post('suspend-quote', [BondsController::class, 'suspendQuote']);
+            Route::post('update-quote', [BondsController::class, 'updateQuote']);
+            Route::post('create-transaction', [BondsController::class, 'createTransaction']); //-- url: /V1/services/create-transaction
+            Route::post('mark-transaction-status', [BondsController::class, 'markTransactionStatus']);
+            Route::post('get-all-transactions', [BondsController::class, 'getAllTransactions']);
+            Route::post('get-all-transactions-per-quote', [BondsController::class, 'getAllTransactionsPerQuote']);
+            Route::post('get-user-transactions', [BondsController::class, 'getUserTransactions']);
+            Route::post('get-sent-transactions', [BondsController::class, 'getSentTransactions']);
+            Route::post('get-delegated-transactions', [BondsController::class, 'getDelegatedTransactions']);
+        });
 
         //Portfolio management
-        Route::post('add-new-portfolio', [BondsController::class, 'addNewPortfolio']);
-        Route::post('get-user-portfolios', [BondsController::class, 'getUserPortfolios']);
-        Route::post('manage-portfolio', [BondsController::class, 'manageBondsInPortfolio']);
+        Route::middleware(['subscription'])->group(function () {
+            Route::post('add-new-portfolio', [BondsController::class, 'addNewPortfolio']);
+            Route::post('get-user-portfolios', [BondsController::class, 'getUserPortfolios']);
+            Route::post('manage-portfolio', [BondsController::class, 'manageBondsInPortfolio']);
 
-        Route::post('update-portfolio', [BondsController::class, 'updatePortfolio']);
-        Route::get('export-portfolio-excel', [BondsController::class, 'exportPortfolioExcel']);
+            Route::post('update-portfolio', [BondsController::class, 'updatePortfolio']);
+            Route::get('export-portfolio-excel', [BondsController::class, 'exportPortfolioExcel']);
+        });
 
 
 
