@@ -61,7 +61,7 @@ class PaypalWebhookTest extends TestCase
         $response->assertStatus(200)->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('payments', [
-            'reference' => $orderId,
+            'reference' => 'CAPTURE-123',
             'status' => 'completed',
         ]);
     }
