@@ -72,9 +72,41 @@ class PaypalController extends Controller
                 'updated_at' => Carbon::now(),
             ]);
 
+            // Activate Subscription
+            $stdfns = new StandardFunctions();
+            $user = $stdfns->get_user_id($request->user_email);
+
+            if ($user) {
+                $planBilling = DB::table('billingdetails')
+                    ->where('SubscriptionPlanId', $request->plan_id)
+                    ->first();
+
+                if ($planBilling) {
+                    $dueDate = Carbon::now()->addDays($planBilling->Days);
+
+                    DB::table('subscriptions')
+                        ->where('User', $user->Id)
+                        ->where('SubscriptionStatus', 1)
+                        ->update(['SubscriptionStatus' => 3]);
+
+                    DB::table('subscriptions')->insert([
+                        'User' => $user->Id,
+                        'PlanId' => $request->plan_id,
+                        'DueDate' => $dueDate,
+                        'AmountPaid' => $amount,
+                        'Discount' => 0,
+                        'SubscriptionStatus' => 1,
+                        'created_by' => $user->Id,
+                        'created_on' => Carbon::now()
+                    ]);
+                    
+                    Log::info('PayPal Subscription activated for user: ' . $request->user_email);
+                }
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Payment captured successfully',
+                'message' => 'Payment captured and subscription activated successfully',
                 'data' => $result['data'],
             ]);
         }

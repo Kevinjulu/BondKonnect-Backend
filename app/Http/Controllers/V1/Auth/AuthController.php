@@ -965,6 +965,41 @@ class AuthController extends Controller
 
                 $verified_email = $portalUser->Email;
 
+                // --- BYPASS OTP FOR DEVELOPER ---
+                if ($verified_email === 'kevinjulu@gmail.com') {
+                    $ip_address = $request->ip();
+                    $token = $this->generateSecureToken($portalUser->Id, $ip_address);
+                    
+                    $stdfns = new StandardFunctions();
+                    $role_id = $stdfns->get_user_role($portalUser->Id);
+
+                    $this->bk_db->table('portaluserlogintoken')
+                        ->where('User', $portalUser->Id)
+                        ->update(['IsActive' => false]);
+
+                    $this->bk_db->table('portaluserlogintoken')->insert([
+                        'Token' => $token,
+                        'IsActive' => true,
+                        'User' => $portalUser->Id,
+                        'ActiveRole' => $role_id,
+                        'LastLogOn' => Carbon::now(),
+                        'IpAddress' => $ip_address,
+                        'UserAgent' => $request->header('User-Agent'),
+                        'ExpiresAt' => Carbon::now()->addDay(),
+                    ]);
+
+                    $this->bk_db->commit();
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Login Successful (Dev Bypass)',
+                        'data' => null,
+                        'otp_bypassed' => true,
+                        'token' => $token // Frontend might need this if it sets cookie manually, but backend usually sets cookie. Wait, backend sets cookie in otpVerification. I should add cookie here too.
+                    ], 200)->cookie('k-o-t', $token, 60 * 24);
+                }
+                // --- END BYPASS ---
+
                 $firstName = $portalUser->FirstName;
                 $communication_manager = new CommunicationManagement();
                 // public function composeMail($email, $firstName, $isOtp,  $isVerification,isIntermediaryVerification, $isGeneral, $isForgot, $isPromo, $isSubscription, $generalSubject = null, $generalBody = null)

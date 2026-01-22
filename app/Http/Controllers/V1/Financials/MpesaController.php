@@ -134,12 +134,45 @@ class MpesaController extends Controller
             // If success, trigger downstream logic
             if ($status === 'completed') {
                 // Logic to activate user subscription
-                Log::info('M-Pesa Payment Successful', [
+                Log::info('M-Pesa Payment Successful, activating subscription', [
                     'reference' => $reference,
                     'user_email' => $payment->user_email,
                     'checkout_id' => $checkoutRequestId,
                 ]);
-                // You could emit event here: event(new PaymentCompleted($payment));
+
+                $stdfns = new StandardFunctions();
+                $user = $stdfns->get_user_id($payment->user_email);
+
+                if ($user) {
+                    // Get plan billing details to calculate due date
+                    $planBilling = DB::table('billingdetails')
+                        ->where('SubscriptionPlanId', $payment->plan_id)
+                        ->first();
+
+                    if ($planBilling) {
+                        $dueDate = Carbon::now()->addDays($planBilling->Days);
+
+                        // Deactivate previous active subscriptions for this user
+                        DB::table('subscriptions')
+                            ->where('User', $user->Id)
+                            ->where('SubscriptionStatus', 1)
+                            ->update(['SubscriptionStatus' => 3]); // Mark as Expired/Superseded
+
+                        // Create new subscription
+                        DB::table('subscriptions')->insert([
+                            'User' => $user->Id,
+                            'PlanId' => $payment->plan_id,
+                            'DueDate' => $dueDate,
+                            'AmountPaid' => $payment->amount,
+                            'Discount' => 0,
+                            'SubscriptionStatus' => 1, // Active
+                            'created_by' => $user->Id,
+                            'created_on' => Carbon::now()
+                        ]);
+                        
+                        Log::info('Subscription activated for user: ' . $payment->user_email);
+                    }
+                }
             }
 
             DB::commit();
