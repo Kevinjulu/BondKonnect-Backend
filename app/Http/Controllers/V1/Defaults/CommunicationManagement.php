@@ -874,6 +874,66 @@ class CommunicationManagement extends Controller
         }
     }
 
+    public function createSms(Request $request)
+    {
+        $request->validate([
+            'body' => 'required|string',
+            'recipients' => 'required|array',
+            'recipients.*' => 'string', // Phone numbers
+            'schedule_date' => 'nullable|date',
+            'send_to_role' => 'nullable|string',
+            'created_by' => 'required|email|exists:bk_db.portaluserlogoninfo,Email'
+        ]);
+
+        try {
+            $this->bk_db->beginTransaction();
+
+            // Get sender details
+            $sender = $this->bk_db->table('portaluserlogoninfo')
+                ->where('Email', $request->created_by)
+                ->first();
+
+            if (!$sender) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sender not found'
+                ], 404);
+            }
+
+            $smsId = $this->bk_db->table('smslogs')->insertGetId([
+                'created_by' => $sender->Id,
+                'created_on' => Carbon::now(),
+                'Body' => $request->body,
+                'IsDraft' => $request->schedule_date ? true : false,
+                'IsSent' => $request->schedule_date ? false : true,
+                'AllRecipientsPhoneNo' => json_encode($request->recipients),
+                // 'RoleGroupSendingTo' => $request->send_to_role // Need to map role name to ID if needed
+            ]);
+
+            // If not scheduled, simulate sending (or integrate with an actual SMS gateway here)
+            if (!$request->schedule_date) {
+                // TODO: Integrate with actual SMS provider (e.g., AfricasTalking, Twilio)
+                Log::info("SMS sent to: " . json_encode($request->recipients) . " Content: " . $request->body);
+            }
+
+            $this->bk_db->commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => $request->schedule_date ? 'SMS scheduled successfully' : 'SMS sent successfully',
+                'data' => ['sms_id' => $smsId]
+            ]);
+
+        } catch (\Throwable $th) {
+            $this->bk_db->rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send SMS',
+                'error' => $th->getMessage()
+            ], 500);
+        }
+    }
+
     private function getTemplateVariables($templateName)
     {
         try {

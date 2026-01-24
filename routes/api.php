@@ -162,6 +162,9 @@ Route::group(
         Route::get('get-email-templates', [CommunicationManagement::class, 'getEmailTemplates']);
         Route::get('get-recipients-by-role', [CommunicationManagement::class, 'getRecipientsByRole']);
         Route::post('preview-template', [CommunicationManagement::class, 'previewTemplate']);
+
+        //sms
+        Route::post('create-sms', [CommunicationManagement::class, 'createSms']);
     }
   );
 
