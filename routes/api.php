@@ -24,6 +24,16 @@ Route::get('/', function () {
     return ['Laravel' => app()->version()];
 });
 
+// Health check for Railway
+Route::get('/health', function () {
+    try {
+        \Illuminate\Support\Facades\DB::connection()->getPdo();
+        return response()->json(['status' => 'ok', 'database' => 'connected'], 200);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'database' => 'disconnected', 'message' => $e->getMessage()], 500);
+    }
+});
+
 //v1(Authentication)
 Route::group(
     [
