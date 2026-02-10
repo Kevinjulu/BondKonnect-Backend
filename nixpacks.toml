@@ -1,0 +1,28 @@
+# Nixpacks configuration for BondKonnect Backend
+# This file fixes the build plan generation issues and installs required PHP extensions
+
+[phases.setup]
+nixPkgs = [
+    'php82',
+    'php82Packages.composer',
+    'php82Extensions.gd',
+    'php82Extensions.bcmath',
+    'php82Extensions.zip',
+    'php82Extensions.intl',
+    'php82Extensions.pdo_mysql',
+    'php82Extensions.mbstring'
+]
+
+[phases.install]
+cmds = [
+    'composer install --optimize-autoloader --no-interaction --no-progress'
+]
+
+[phases.build]
+cmds = [
+    'php artisan optimize'
+]
+
+[variables]
+PHP_VERSION = '8.2'
+NIXPACKS_PHP_EXTENSIONS = 'gd,bcmath,zip,intl,pdo_mysql,mbstring'
