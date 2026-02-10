@@ -1,21 +1,21 @@
-# Nixpacks configuration for BondKonnect Backend
-# This file fixes the build plan generation issues and installs required PHP extensions
+# nixpacks.toml
+# Explicitly defining the environment for Railway to ensure all PHP extensions are present.
 
 [phases.setup]
 nixPkgs = [
     'php82',
     'php82Packages.composer',
-    'php82Extensions.gd',
-    'php82Extensions.bcmath',
-    'php82Extensions.zip',
-    'php82Extensions.intl',
-    'php82Extensions.pdo_mysql',
-    'php82Extensions.mbstring'
+    'gd',
+    'bcmath',
+    'zlib',
+    'pkg-config',
+    'libzip'
 ]
 
 [phases.install]
+# We tell Nixpacks specifically which extensions to enable during the build process
 cmds = [
-    'composer install --optimize-autoloader --no-interaction --no-progress'
+    'composer install --optimize-autoloader --no-interaction --no-progress --ignore-platform-req=ext-gd --ignore-platform-req=ext-bcmath'
 ]
 
 [phases.build]
@@ -24,5 +24,5 @@ cmds = [
 ]
 
 [variables]
+NIXPACKS_PHP_EXTENSIONS = 'gd,bcmath,pdo_mysql,mbstring,xml,tokenizer,ctype,curl,zip,intl'
 PHP_VERSION = '8.2'
-NIXPACKS_PHP_EXTENSIONS = 'gd,bcmath,zip,intl,pdo_mysql,mbstring'
