@@ -15,6 +15,7 @@ use App\Http\Controllers\V1\Financials\PaypalController;
 use App\Http\Controllers\V1\Defaults\CommunicationManagement;
 use App\Http\Controllers\V1\RoleActions\PermissionManagement;
 use App\Http\Controllers\V1\Notifications\NotificationController;
+use App\Http\Controllers\V1\AiController;
 
 // Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 //     return $request->user();
@@ -247,3 +248,13 @@ Route::group(
     }
   );
 
+
+//V1/AI (Gemini/DeepSeek Integration)
+Route::group(
+    [
+        'prefix' => 'V1/ai',
+    ],
+    function () {
+        Route::post('chat', [AiController::class, 'chat']);
+    }
+);

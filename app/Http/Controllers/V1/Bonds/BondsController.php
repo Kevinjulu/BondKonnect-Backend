@@ -2446,7 +2446,7 @@ public function getUserTransactions(Request $request){
     {
         try {
             $bondDetails = $this->bk_db->table('tableparams')
-                ->select('ValueDate', 'DailyBasis', 'PercentOverTenYrs', 'PercentUnderTenYrs', 'IfbFiveYrs')
+                ->select('ValueDate', 'DailyBasis', 'PercentOverTenYrs', 'PercentUnderTenYrs', 'IfbFiveYrs', 'NseCommission', 'NseMinCommission', 'CmaLevies')
                 ->first();
 
             return response()->json([

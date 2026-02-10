@@ -117,7 +117,7 @@ class ActivityLogging extends Controller
 
             // Get all admin users
             $admins = $this->bk_db->table('portaluserlogoninfo')
-                ->where('Role', 3) // Admin role
+                ->where('Role', 1) // Admin role
                 ->where('IsActive', true)
                 ->get();
 

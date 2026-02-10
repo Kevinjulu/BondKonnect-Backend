@@ -43,7 +43,7 @@ return [
         ],
         'bk_api_db' => [
             'driver' => 'mysql',
-            'url' => env('DB_URL'),
+            'url' => env('DATABASE_URL') ?: env('DB_URL'),
             'host' => match (env('APP_ENV')) {
                 'production' => env('DB_HOST_PROD'),
                 'uat' => env('DB_HOST_UAT'),
@@ -73,10 +73,6 @@ return [
                 'uat' => env('DB_PASSWORD_UAT'),
                 'dev' => env('DB_PASSWORD_DEV'),
                 default => env('DB_PASSWORD'),
-                'options' => extension_loaded('pdo_mysql') ? array_filter([
-        PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-        PDO::MYSQL_ATTR_INIT_COMMAND => 'SET SESSION lower_case_table_names=1',
-    ]) : [],
             },
 
             'unix_socket' => env('DB_SOCKET', ''),
@@ -112,6 +108,7 @@ return [
         // ],
         'bk_db' => [
             'driver' => 'mysql',
+            'url' => env('DATABASE_URL') ?: env('DB_URL'),
             'host' => match (env('APP_ENV')) {
                 'production' => env('BK_HOST_PROD'),
                 'uat' => env('BK_HOST_UAT'),
@@ -174,7 +171,7 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => env('DB_URL'),
+            'url' => env('DATABASE_URL') ?: env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
             'database' => env('DB_DATABASE', 'laravel'),

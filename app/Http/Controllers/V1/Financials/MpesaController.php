@@ -145,7 +145,7 @@ class MpesaController extends Controller
 
                 if ($user) {
                     // Get plan billing details to calculate due date
-                    $planBilling = DB::table('billingdetails')
+                    $planBilling = DB::connection('bk_db')->table('billingdetails')
                         ->where('SubscriptionPlanId', $payment->plan_id)
                         ->first();
 
@@ -153,13 +153,13 @@ class MpesaController extends Controller
                         $dueDate = Carbon::now()->addDays($planBilling->Days);
 
                         // Deactivate previous active subscriptions for this user
-                        DB::table('subscriptions')
+                        DB::connection('bk_db')->table('subscriptions')
                             ->where('User', $user->Id)
                             ->where('SubscriptionStatus', 1)
                             ->update(['SubscriptionStatus' => 3]); // Mark as Expired/Superseded
 
                         // Create new subscription
-                        DB::table('subscriptions')->insert([
+                        DB::connection('bk_db')->table('subscriptions')->insert([
                             'User' => $user->Id,
                             'PlanId' => $payment->plan_id,
                             'DueDate' => $dueDate,

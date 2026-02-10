@@ -77,19 +77,19 @@ class PaypalController extends Controller
             $user = $stdfns->get_user_id($request->user_email);
 
             if ($user) {
-                $planBilling = DB::table('billingdetails')
+                $planBilling = DB::connection('bk_db')->table('billingdetails')
                     ->where('SubscriptionPlanId', $request->plan_id)
                     ->first();
 
                 if ($planBilling) {
                     $dueDate = Carbon::now()->addDays($planBilling->Days);
 
-                    DB::table('subscriptions')
+                    DB::connection('bk_db')->table('subscriptions')
                         ->where('User', $user->Id)
                         ->where('SubscriptionStatus', 1)
                         ->update(['SubscriptionStatus' => 3]);
 
-                    DB::table('subscriptions')->insert([
+                    DB::connection('bk_db')->table('subscriptions')->insert([
                         'User' => $user->Id,
                         'PlanId' => $request->plan_id,
                         'DueDate' => $dueDate,

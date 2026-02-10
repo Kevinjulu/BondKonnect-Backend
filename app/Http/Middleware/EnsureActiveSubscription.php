@@ -25,7 +25,7 @@ class EnsureActiveSubscription
             // Fallback: Check if user_email is provided in request (for some endpoints)
             if ($request->has('user_email')) {
                 $email = $request->input('user_email');
-                $user = DB::table('portaluserlogoninfo')->where('Email', $email)->first();
+                $user = DB::connection('bk_db')->table('portaluserlogoninfo')->where('Email', $email)->first();
                 if ($user) {
                     return $this->checkSubscription($user->Id) ? $next($request) : $this->forbiddenResponse();
                 }
@@ -52,7 +52,7 @@ class EnsureActiveSubscription
     private function checkSubscription($userId)
     {
         // Check for active subscription: Status = 1 (Active) AND DueDate > Now
-        return DB::table('subscriptions')
+        return DB::connection('bk_db')->table('subscriptions')
             ->where('User', $userId)
             ->where('SubscriptionStatus', 1)
             ->where('DueDate', '>', Carbon::now())
@@ -92,7 +92,7 @@ class EnsureActiveSubscription
 
             // Skip IP check in dev/local for ease of testing, but keep it for prod if needed
             // For this middleware, we'll verify the token exists in DB to be sure
-            $tokenRecord = DB::table('portaluserlogintoken')
+            $tokenRecord = DB::connection('bk_db')->table('portaluserlogintoken')
                 ->where('Token', $token)
                 ->where('User', $payload['user_id'])
                 ->where('ExpiresAt', '>', Carbon::now())

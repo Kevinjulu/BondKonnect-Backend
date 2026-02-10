@@ -25,7 +25,7 @@ class EnsureActiveBroker
              // Fallback: Check if user_email is provided in request
              if ($request->has('user_email')) {
                 $email = $request->input('user_email');
-                $user = DB::table('portaluserlogoninfo')->where('Email', $email)->first();
+                $user = DB::connection('bk_db')->table('portaluserlogoninfo')->where('Email', $email)->first();
                 if ($user) {
                     return $this->checkBroker($user->Id) ? $next($request) : $this->forbiddenResponse();
                 }
@@ -51,7 +51,7 @@ class EnsureActiveBroker
     private function checkBroker($userId)
     {
         // Check for active broker sponsorship in portalintermediary
-        return DB::table('portalintermediary')
+        return DB::connection('bk_db')->table('portalintermediary')
             ->where('User', $userId)
             ->where('IsActive', true)
             ->exists();
@@ -88,7 +88,7 @@ class EnsureActiveBroker
 
             if (!$payload || !isset($payload['user_id'])) return ['valid' => false, 'reason' => 'Invalid payload'];
 
-            $tokenRecord = DB::table('portaluserlogintoken')
+            $tokenRecord = DB::connection('bk_db')->table('portaluserlogintoken')
                 ->where('Token', $token)
                 ->where('User', $payload['user_id'])
                 ->where('ExpiresAt', '>', Carbon::now())
