@@ -105,10 +105,14 @@ class Phase4FinancialSeeder extends Seeder
                 ]);
             }
 
-            // 5. Create mock payments
+            // 5. Create mock payments (include user_id when available)
+            $userRecord = DB::table('users')->whereRaw('LOWER(email) = ?', [trim(strtolower($investor->Email))])->first();
+            $userId = $userRecord ? $userRecord->id : null;
+
             DB::table('payments')->insert([
                 [
                     'user_email' => $investor->Email,
+                    'user_id' => $userId,
                     'plan_id' => 1,
                     'payment_method' => 'mpesa',
                     'amount' => 1500.00,
@@ -120,6 +124,7 @@ class Phase4FinancialSeeder extends Seeder
                 ],
                 [
                     'user_email' => $investor->Email,
+                    'user_id' => $userId,
                     'plan_id' => 2,
                     'payment_method' => 'paypal',
                     'amount' => 50.00,
