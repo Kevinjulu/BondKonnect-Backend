@@ -15,3 +15,8 @@ Route::get('/', function () {
             'message' => 'This is not the page you are looking for. Check the documentation for the API you are trying to access.',
         ], 200);
 });
+
+// Health check endpoint used by Railway/uptime monitors
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok', 'time' => now()->toDateTimeString()], 200);
+});

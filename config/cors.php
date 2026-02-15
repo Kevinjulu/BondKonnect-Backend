@@ -16,7 +16,15 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    /*
+    |--------------------------------------------------------------------------
+    | Environment-driven allowed origins
+    |--------------------------------------------------------------------------
+    | In production, set CORS_ALLOWED_ORIGIN to your frontend's URL (e.g.
+    | https://your-frontend.vercel.app). For convenience during development we
+    | fall back to allowing all origins when the env is unset.
+    */
+    'allowed_origins' => env('CORS_ALLOWED_ORIGIN') ? [env('CORS_ALLOWED_ORIGIN')] : ['*'],
 
     'allowed_origins_patterns' => [],
 
@@ -26,6 +34,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => false,
+    'supports_credentials' => env('CORS_SUPPORTS_CREDENTIALS', false),
 
 ];
