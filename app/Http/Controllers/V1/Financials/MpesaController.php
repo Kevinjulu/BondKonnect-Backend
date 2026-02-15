@@ -43,9 +43,17 @@ class MpesaController extends Controller
         if ($result['success']) {
             $checkoutRequestId = $result['data']['CheckoutRequestID'] ?? null;
 
+            // Resolve local user if present and include user_id for referential integrity
+            $userId = null;
+            $userRecord = DB::table('users')->whereRaw('LOWER(email) = ?', [trim(strtolower($request->user_email))])->first();
+            if ($userRecord) {
+                $userId = $userRecord->id;
+            }
+
             // Log the request to database
             DB::table('payments')->insert([
                 'user_email' => $request->user_email,
+                'user_id' => $userId,
                 'plan_id' => $request->plan_id,
                 'payment_method' => 'mpesa',
                 'amount' => $request->amount,
@@ -134,14 +142,23 @@ class MpesaController extends Controller
             // If success, trigger downstream logic
             if ($status === 'completed') {
                 // Logic to activate user subscription
+                // Prefer local user_id when available to get canonical email
+                $paymentEmail = $payment->user_email;
+                if (!empty($payment->user_id)) {
+                    $u = DB::table('users')->where('id', $payment->user_id)->first();
+                    if ($u && !empty($u->email)) {
+                        $paymentEmail = $u->email;
+                    }
+                }
+
                 Log::info('M-Pesa Payment Successful, activating subscription', [
                     'reference' => $reference,
-                    'user_email' => $payment->user_email,
+                    'user_email' => $paymentEmail,
                     'checkout_id' => $checkoutRequestId,
                 ]);
 
                 $stdfns = new StandardFunctions();
-                $user = $stdfns->get_user_id($payment->user_email);
+                $user = $stdfns->get_user_id($paymentEmail);
 
                 if ($user) {
                     // Get plan billing details to calculate due date

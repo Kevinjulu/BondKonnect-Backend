@@ -241,6 +241,42 @@ Route::group(
         Route::post('paypal/capture-order', [PaypalController::class, 'captureOrder']);
         // PayPal webhook for asynchronous notifications
         Route::post('paypal/webhook', [PaypalController::class, 'handleWebhook'])->name('paypal.webhook');
+
+        // Compatibility routes for legacy frontend paths (normalize params and forward)
+        Route::get('get-all-subscription-plans', function (\Illuminate\Http\Request $request) {
+          return app()->call([FinancialController::class, 'getAllSubscriptionPlans'], ['request' => $request]);
+        });
+
+        Route::get('get-user-subscriptions', function (\Illuminate\Http\Request $request) {
+          $request->merge(['user_email' => $request->input('email') ?? $request->input('user_email')]);
+          return app()->call([FinancialController::class, 'getUserSubscriptions'], ['request' => $request]);
+        });
+
+        Route::get('get-all-features', function (\Illuminate\Http\Request $request) {
+          return app()->call([FinancialController::class, 'getAllFeatures'], ['request' => $request]);
+        });
+
+        Route::get('get-all-feature-categories', function (\Illuminate\Http\Request $request) {
+          return app()->call([FinancialController::class, 'getAllFeatureCategories'], ['request' => $request]);
+        });
+
+        Route::post('create-transaction', function (\Illuminate\Http\Request $request) {
+          $request->merge(['user_email' => $request->input('email') ?? $request->input('user_email')]);
+          return app()->call([App\Http\Controllers\V1\Bonds\BondsController::class, 'createTransaction'], ['request' => $request]);
+        })->middleware('broker');
+
+        Route::post('mark-transaction-status', function (\Illuminate\Http\Request $request) {
+          if ($request->has('transaction_id')) {
+            $request->merge(['trans_id' => $request->input('transaction_id')]);
+          }
+          $request->merge(['user_email' => $request->input('email') ?? $request->input('user_email')]);
+          return app()->call([App\Http\Controllers\V1\Bonds\BondsController::class, 'markTransactionStatus'], ['request' => $request]);
+        })->middleware('broker');
+
+        Route::get('get-user-transactions', function (\Illuminate\Http\Request $request) {
+          $request->merge(['user_email' => $request->input('email') ?? $request->input('user_email')]);
+          return app()->call([App\Http\Controllers\V1\Bonds\BondsController::class, 'getUserTransactions'], ['request' => $request]);
+        });
     }
 );
 

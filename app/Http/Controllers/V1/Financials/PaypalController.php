@@ -58,9 +58,17 @@ class PaypalController extends Controller
         if ($result['success'] && $result['data']['status'] === 'COMPLETED') {
             $amount = $result['data']['purchase_units'][0]['payments']['captures'][0]['amount']['value'];
 
+            // Resolve local user if present and include user_id for referential integrity
+            $userId = null;
+            $userRecord = DB::table('users')->whereRaw('LOWER(email) = ?', [trim(strtolower($request->user_email))])->first();
+            if ($userRecord) {
+                $userId = $userRecord->id;
+            }
+
             // Log successful payment
             DB::table('payments')->insert([
                 'user_email' => $request->user_email,
+                'user_id' => $userId,
                 'plan_id' => $request->plan_id,
                 'payment_method' => 'paypal',
                 'amount' => $amount,
@@ -198,9 +206,18 @@ class PaypalController extends Controller
                         'updated_at' => Carbon::now(),
                     ]);
 
+                    // Prefer local user_id when available to get canonical email
+                    $paymentEmail = $payment->user_email;
+                    if (!empty($payment->user_id)) {
+                        $u = DB::table('users')->where('id', $payment->user_id)->first();
+                        if ($u && !empty($u->email)) {
+                            $paymentEmail = $u->email;
+                        }
+                    }
+
                     Log::info('PayPal webhook: marked payment completed', [
                         'payment_id' => $payment->id,
-                        'user_email' => $payment->user_email,
+                        'user_email' => $paymentEmail,
                         'resource_id' => $resource['id'] ?? 'unknown',
                     ]);
                 } else {
