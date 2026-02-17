@@ -13,6 +13,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "league/csv": "^9.21",
+        "maennchen/zipstream-php": "^2.1",
         "nesbot/carbon": "^3.8",
         "phpoffice/phpspreadsheet": "^3.7",
         "predis/predis": "^3.0",
@@ -88,7 +89,7 @@
             "php-http/discovery": true
         },
         "platform": {
-            "php": "8.2.30"
+            "php": "8.3.0"
         }
     },
     "minimum-stability": "stable",

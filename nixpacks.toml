@@ -3,20 +3,20 @@
 
 [phases.setup]
 nixPkgs = [
-    'php82',
-    'php82Packages.composer',
-    'php82Extensions.gd',
-    'php82Extensions.bcmath',
-    'php82Extensions.zip',
-    'php82Extensions.intl',
-    'php82Extensions.pdo_mysql',
-    'php82Extensions.mbstring',
-    'php82Extensions.xml',
-    'php82Extensions.curl',
-    'php82Extensions.ctype',
-    'php82Extensions.tokenizer',
-    'php82Extensions.dom',
-    'php82Extensions.fileinfo'
+    'php83',
+    'php83Packages.composer',
+    'php83Extensions.zip',
+    'php83Extensions.gd',
+    'php83Extensions.bcmath',
+    'php83Extensions.intl',
+    'php83Extensions.pdo_pgsql',
+    'php83Extensions.mbstring',
+    'php83Extensions.xml',
+    'php83Extensions.curl',
+    'php83Extensions.ctype',
+    'php83Extensions.tokenizer',
+    'php83Extensions.dom',
+    'php83Extensions.fileinfo'
 ]
 
 [phases.install]
@@ -30,5 +30,5 @@ cmds = [
 ]
 
 [variables]
-PHP_VERSION = '8.2'
-NIXPACKS_PHP_EXTENSIONS = 'gd,bcmath,zip,intl,pdo_mysql,mbstring,xml,curl,ctype,tokenizer,dom,fileinfo'
+PHP_VERSION = '8.3'
+NIXPACKS_PHP_EXTENSIONS = 'zip,gd,bcmath,zip,intl,pdo_pgsql,mbstring,xml,curl,ctype,tokenizer,dom,fileinfo'
