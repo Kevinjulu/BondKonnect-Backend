@@ -16,6 +16,10 @@ use App\Http\Controllers\V1\Defaults\CommunicationManagement;
 use App\Http\Controllers\V1\RoleActions\PermissionManagement;
 use App\Http\Controllers\V1\Notifications\NotificationController;
 use App\Http\Controllers\V1\AiController;
+use App\Http\Controllers\V1\BondController;
+use App\Http\Controllers\V1\PrimaryMarketController;
+
+use App\Http\Controllers\V1\Ratings\RatingsController;
 
 // Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 //     return $request->user();
@@ -24,7 +28,32 @@ Route::get('/', function () {
     return ['Laravel' => app()->version()];
 });
 
-// Health check for Railway
+//V1/ratings (User Ratings and Credibility)
+Route::group(
+    [
+        'prefix' => 'V1/ratings',
+    ],
+    function () {
+        Route::post('submit-rating', [RatingsController::class, 'submitRating']);
+        Route::put('{ratingId}/edit', [RatingsController::class, 'updateRating']);
+        Route::get('user-credibility/{userId}', [RatingsController::class, 'getUserCredibility']);
+        Route::get('user-ratings/{userId}', [RatingsController::class, 'getUserRatings']);
+        Route::get('user-stats/{userId}', [RatingsController::class, 'getUserRatingStats']);
+        Route::post('{ratingId}/dispute', [RatingsController::class, 'disputeRating']);
+
+        // Admin routes
+        Route::group(['prefix' => 'admin'], function () {
+            Route::get('disputes', [RatingsController::class, 'getDisputes']);
+            Route::get('disputes/{disputeId}', [RatingsController::class, 'getDisputeDetails']);
+            Route::post('disputes/{disputeId}/uphold', [RatingsController::class, 'upholdRating']);
+            Route::post('disputes/{disputeId}/reverse', [RatingsController::class, 'reverseRating']);
+            Route::get('dispute-stats', [RatingsController::class, 'getDisputeStats']);
+            Route::post('publish-pending', [RatingsController::class, 'publishPendingRatings']);
+        });
+    }
+);
+
+// Health check for Deployment monitors
 Route::get('/health', function () {
     try {
         \Illuminate\Support\Facades\DB::connection()->getPdo();
@@ -302,5 +331,29 @@ Route::group(
     ],
     function () {
         Route::post('chat', [AiController::class, 'chat']);
+    }
+);
+
+//V1/bonds (Legacy Data Access via Eloquent)
+Route::group(
+    [
+        'prefix' => 'V1/bonds',
+    ],
+    function () {
+        Route::get('/', [BondController::class, 'index']);
+        Route::get('/{id}', [BondController::class, 'show']);
+        Route::patch('/{id}', [BondController::class, 'update']);
+        Route::get('/portfolio-summary/{id}', [BondController::class, 'getPortfolioSummary']);
+    }
+);
+
+//V1/primary-market (CBK Auctions)
+Route::group(
+    [
+        'prefix' => 'V1/primary-market',
+    ],
+    function () {
+        Route::get('/auctions', [PrimaryMarketController::class, 'index']);
+        Route::post('/submit-bid', [PrimaryMarketController::class, 'submitBid']);
     }
 );

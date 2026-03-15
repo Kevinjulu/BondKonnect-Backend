@@ -25,12 +25,12 @@ class AuthController extends Controller
     public function dbDR(Request $request)
     {
         try {
-            $tables = $this->bk_db->table('INFORMATION_SCHEMA.TABLES')
-                ->select('TABLE_NAME')
-                ->where('TABLE_TYPE', 'BASE TABLE')
+            $tables = $this->bk_db->table('information_schema.tables')
+                ->select('table_name')
+                ->where('table_schema', 'public')
                 ->get();
 
-            $tableNames = $tables->pluck('TABLE_NAME');
+            $tableNames = $tables->pluck('table_name');
 
             Log::info('Retrieved tables successfully', ['tables' => $tableNames]);
 
@@ -746,6 +746,8 @@ class AuthController extends Controller
                 'is_res' => 'required|boolean',
                 'csrf_token' => 'required|string',
                 'csrf_timestamp' => 'required|string',
+                's' => 'required|string',
+                't' => 'required|string',
             ]);
 
             $standard_functions = new StandardFunctions();
@@ -758,13 +760,23 @@ class AuthController extends Controller
                 ], 403);
             }
 
+            // Verify the signature from the URL matches the HMAC we expect
+            $expectedSignature = hash_hmac('sha256', $request->email . $request->t, config('app.key'));
+            if (!hash_equals($expectedSignature, $request->s)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid password reset signature',
+                    'data' => null,
+                ], 403);
+            }
+
             $this->bk_db->beginTransaction();
 
-            // Verify the reset signature from email link
+            // Verify the reset signature from email link exists in DB and is valid
             $verification = $this->bk_db->table('portaluseremailverification')
                 ->join('portaluserlogoninfo', 'portaluserlogoninfo.Id', '=', 'portaluseremailverification.User')
                 ->where('portaluserlogoninfo.Email', $request->email)
-                //->where('portaluseremailverification.Signature', $request->signature)
+                ->where('portaluseremailverification.Signature', $request->s)
                 ->where('portaluseremailverification.ExpiresAt', '>', Carbon::now())
                 ->where('portaluseremailverification.IsVerified', false)
                 ->first();
@@ -870,7 +882,7 @@ class AuthController extends Controller
             ->join('userroles', 'portaluserlogoninfo.Id', '=', 'userroles.User')
             ->join('roles', 'userroles.Role', '=', 'roles.Id')
             ->where('portaluserlogoninfo.Email', $email)
-            ->select('roles.RoleName')
+            ->select('roles.Name')
             ->get();
 
 

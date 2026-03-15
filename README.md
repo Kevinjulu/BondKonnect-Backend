@@ -1,103 +1,106 @@
-# BondKonnect - Backend API
+# BondKonnect Backend: The Financial Engine
 
-This repository contains the backend service for **BondKonnect**, a comprehensive platform designed for bond trading, portfolio management, and real-time market data analysis. This service is extracted from the main BondKonnect project to serve as a dedicated API layer.
+The `bondkonnect_api` directory houses the core backend for the BondKonnect platform. Built with **Laravel 11**, it acts as a robust, secure, and highly scalable financial engine for bond trading, analytics, and payment processing.
 
-## Project Overview
+## 🏛 Architecture & Tech Stack
 
-BondKonnect is a robust financial technology solution that facilitates secure and efficient bond trading. The backend is built with Laravel 11, leveraging its powerful features to provide a RESTful API that handles complex financial logic, user authentication, and real-time data broadcasting.
+BondKonnect's backend follows a **Service-Oriented Architecture** (SOA), decoupling business logic from controllers to ensure maintainability and testability.
 
-### Deployment Notice
-🚀 **Testing & QA:** This backend is configured for deployment on **Railway** for testing and staging purposes. The configuration includes a `Procfile` for seamless deployment on the Railway platform.
-
-## Key Features
-
-### 🏦 Trading & Financials
-- **Order Management:** Secure execution of bond trades and order tracking.
-- **Portfolio Analytics:** Real-time P&L calculations and position management.
-- **Financial Integration:** Support for M-Pesa and PayPal payment gateways (Phase 1 complete).
-- **Yield Calculations:** Automated yield-to-maturity and yield-to-call calculations.
-
-### 🔐 Security & Access
-- **Authentication:** Robust user authentication using Laravel Sanctum and JWT.
-- **RBAC:** Role-Based Access Control to manage different user permissions (Brokers, Investors, Admins).
-- **Security Headers:** Implemented middleware for secure API communication.
-
-### 📊 Market Data
-- **Real-time Updates:** WebSocket integration via Laravel Echo and Pusher for live market feeds.
-- **Data Archiving:** Efficient storage and retrieval of historical market data.
-
-### 🛠 System Architecture
-- **Service Layer:** Decoupled business logic for better maintainability.
-- **Activity Logging:** Comprehensive logging of user and system activities.
-- **Caching:** Multi-level caching (Redis/File) to optimize performance.
-
-## Technical Stack
-
-- **Framework:** Laravel 11.x
+- **Framework:** [Laravel 11.x](https://laravel.com/) (latest stable)
 - **Language:** PHP 8.2+
-- **Database:** MySQL 8+ (Configured for scalability)
-- **Cache & Queue:** Redis 7+
-- **Real-time:** Pusher / Laravel Echo
-- **Deployment:** Railway / Heroku (via Procfile)
+- **Database:** [Neon PostgreSQL](https://neon.tech/) (Serverless PostgreSQL for high availability and instant branching)
+- **Real-time Engine:** [Pusher](https://pusher.com/) for WebSocket broadcasting (Yield curves, live quotes).
+- **Caching & Queues:** Redis 7+ for low-latency session management and background job processing.
+- **AI Integration:** [AiService](./app/Services/AiService.php) for market analysis and predictive yield calculations.
 
-## Getting Started
+---
 
-### Prerequisites
+## 💎 Specialized Financial Services
 
-- PHP 8.2 or higher
-- Composer 2.x
-- MySQL 8.x
-- Redis (Optional for local development, recommended for production)
+At the heart of BondKonnect are custom services designed for the Kenyan and international bond markets:
 
-### Local Installation
+### 🇰🇪 M-Pesa Integration (`MpesaService`)
+- **STK Push (Lipa na M-Pesa):** Instant mobile payment initiation for retail bond purchases.
+- **C2B & B2C:** Automated reconciliation of customer payments and disbursement of bond proceeds.
+- **Real-time Validation:** Instant callback processing for high-volume transactions.
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Kevinjulu/BondKonnect-Backend.git
-   cd BondKonnect-Backend
-   ```
+### 🌐 PayPal Integration (`PaypalService`)
+- Secure international payment gateway for diaspora and institutional investors.
+- Multi-currency support for global bond access.
 
-2. **Install dependencies:**
-   ```bash
-   composer install
-   ```
+### 📈 Rating & Credibility (`RatingService`, `CredibilityScoreService`)
+- **User Credibility Scoring:** A dynamic reputation system based on trade history and payment reliability.
+- **Bond Ratings:** Integration of historical and market data to provide risk indicators for Kenyan corporate and government bonds.
+- **Dispute Management:** Automated handling of rating disputes through a transparent review process.
 
-3. **Environment Setup:**
-   ```bash
-   cp .env.example .env
-   php artisan key:generate
-   ```
+### 🤖 AI Concierge & Knowledge Base (`AiService`)
+- **RAG Architecture:** Retrieval-Augmented Generation for site-specific knowledge.
+- **Vector Search:** `pgvector` integration for high-performance similarity searching of bond market data and platform documentation.
+- **Ground Truth Knowledge:** A curated knowledge base (IFB/FXD rules, M-Pesa workflows) ensures the AI only answers based on verified platform information.
+- **Strict Guardrails:** Professional "Terminal" persona focused exclusively on BondKonnect and the Kenyan bond market.
 
-4. **Database Configuration:**
-   Update your `.env` file with your MySQL credentials:
-   ```env
-   DB_CONNECTION=bk_api_db
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DB_DATABASE=bondkonnect_db
-   ```
+---
 
-5. **Run Migrations & Seeders:**
-   ```bash
-   php artisan migrate --seed
-   ```
+## 🔐 Advanced Security Features
 
-6. **Start the Server:**
-   ```bash
-   php artisan serve
-   ```
+BondKonnect goes beyond standard authentication to protect sensitive financial data:
 
-## Testing
+- **Multi-Session Management:** Users can view active browser and device sessions in real-time and revoke specific logins to prevent unauthorized access.
+- **Granular RBAC:** A deep permission system managing access for Individuals, Agents, Brokers, Dealers, and Corporates.
+- **Sanctum & JWT:** Secure, token-based API authentication.
+- **Audit Logs:** Every financial transaction and sensitive system change is logged with a detailed audit trail.
 
-Run the test suite using PHPUnit:
+---
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+- PHP 8.2+ & Composer
+- MySQL 8+ or PostgreSQL (Neon recommended)
+- Redis
+
+### 2. Installation
 ```bash
+composer install
+```
+
+### 3. Environment Configuration
+Copy `.env.example` to `.env` and configure your credentials:
+```env
+DB_CONNECTION=pgsql # Use pgsql for Neon PostgreSQL
+DB_URL="your-neon-connection-string"
+
+MPESA_CONSUMER_KEY=your-key
+MPESA_CONSUMER_SECRET=your-secret
+MPESA_SHORTCODE=174379
+
+PUSHER_APP_ID=your-id
+PUSHER_APP_KEY=your-key
+```
+
+### 4. Database & Seeding
+```bash
+php artisan key:generate
+php artisan migrate --seed # Seeds essential bond data and system roles
+```
+
+### 5. Start the Engine
+```bash
+php artisan serve
+```
+
+---
+
+## 🧪 Testing & Validation
+
+We maintain high reliability through extensive automated testing:
+- **Unit & Feature:** [PHPUnit](https://phpunit.de/) for validating financial services and API endpoints.
+- **Test Coverage:** Critical services like `MpesaService` and `RatingService` are heavily tested.
+
+```bash
+# Run the test suite
 php artisan test
 ```
 
-## Contributing
-
-This is a private project. For access or contribution inquiries, please contact the repository owner.
-
-## License
-
-The BondKonnect Backend is proprietary software. All rights reserved.
+## 📄 License
+Proprietary software. Part of the BondKonnect Ecosystem.

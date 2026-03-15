@@ -1072,12 +1072,22 @@ class BondsController extends Controller
                 ->orderBy('quotebook.OfferPrice', 'DESC')
                 ->orderBy('quotebook.BidPrice', 'DESC')
                 ->get()
-                ->map(function($quote) {
+                ->map(function($quote) use ($user) {
                     // Get transactions for this quote
-                    $transactions = $this->bk_db->table('quotetransactions')
-                        ->where('QuoteId', $quote->Id)
+                    $transactions = $this->bk_db->table('quotetransactions as qt')
+                        ->leftJoin('portaluserlogoninfo as p_init', 'qt.InitiatedBy', '=', 'p_init.Id')
+                        ->leftJoin('bondkonnect_db.users as u_init', 'p_init.Id', '=', 'u_init.portal_id')
+                        ->leftJoin('portaluserlogoninfo as p_owner', 'qt.QuoteId', '=', 'p_owner.Id') // Wait, Quote owner is qb.AssignedBy
+                        // Actually, I need to join with quotebook again to get AssignedBy if I want the owner
+                        ->where('qt.QuoteId', $quote->Id)
+                        ->select('qt.*', 'p_init.Email as initiator_email', 'u_init.id as initiator_id', DB::raw("CONCAT(p_init.FirstName, ' ', IFNULL(p_init.OtherNames, '')) as initiator_name"))
                         ->get()
-                        ->map(function($transaction) {
+                        ->map(function($transaction) use ($quote, $user) {
+                            // If current user is the quote owner, the counterparty is the initiator
+                            // If current user is the initiator, the counterparty is the quote owner (AssignedBy)
+                            
+                            $isQuoteOwner = $quote->AssignedBy === $user->Email;
+                            
                             return [
                                 'id' => $transaction->Id,
                                 'transaction_no' => $transaction->TransactionNo,
@@ -1091,7 +1101,10 @@ class BondsController extends Controller
                                 'is_accepted' => $transaction->IsAccepted,
                                 'is_rejected' => $transaction->IsRejected,
                                 'is_delegated' => $transaction->IsDelegated,
-                                'created_on' => $transaction->created_on
+                                'created_on' => $transaction->created_on,
+                                'counterparty_id' => $isQuoteOwner ? $transaction->initiator_id : null, // We need to fetch quote owner's ID if user is initiator
+                                'counterparty_name' => $isQuoteOwner ? $transaction->initiator_name : 'Quote Owner',
+                                'counterparty_email' => $isQuoteOwner ? $transaction->initiator_email : $quote->AssignedBy
                             ];
                         });
 
@@ -1117,12 +1130,16 @@ class BondsController extends Controller
                 ->orderBy('quotebook.OfferPrice', 'DESC')
                 ->orderBy('quotebook.BidPrice', 'DESC')
                 ->get()
-                ->map(function($quote) {
+                ->map(function($quote) use ($user) {
                     // Get transactions for this quote
-                    $transactions = $this->bk_db->table('quotetransactions')
-                        ->where('QuoteId', $quote->Id)
+                    $transactions = $this->bk_db->table('quotetransactions as qt')
+                        ->leftJoin('portaluserlogoninfo as p_init', 'qt.InitiatedBy', '=', 'p_init.Id')
+                        ->leftJoin('bondkonnect_db.users as u_init', 'p_init.Id', '=', 'u_init.portal_id')
+                        ->where('qt.QuoteId', $quote->Id)
+                        ->select('qt.*', 'p_init.Email as initiator_email', 'u_init.id as initiator_id', DB::raw("CONCAT(p_init.FirstName, ' ', IFNULL(p_init.OtherNames, '')) as initiator_name"))
                         ->get()
-                        ->map(function($transaction) {
+                        ->map(function($transaction) use ($quote, $user) {
+                            $isQuoteOwner = $quote->AssignedBy === $user->Email;
                             return [
                                 'id' => $transaction->Id,
                                 'transaction_no' => $transaction->TransactionNo,
@@ -1136,7 +1153,10 @@ class BondsController extends Controller
                                 'is_accepted' => $transaction->IsAccepted,
                                 'is_rejected' => $transaction->IsRejected,
                                 'is_delegated' => $transaction->IsDelegated,
-                                'created_on' => $transaction->created_on
+                                'created_on' => $transaction->created_on,
+                                'counterparty_id' => $isQuoteOwner ? $transaction->initiator_id : null,
+                                'counterparty_name' => $isQuoteOwner ? $transaction->initiator_name : 'Quote Owner',
+                                'counterparty_email' => $isQuoteOwner ? $transaction->initiator_email : $quote->AssignedBy
                             ];
                         });
 
@@ -1159,12 +1179,16 @@ class BondsController extends Controller
                 ->orderBy('quotebook.OfferPrice', 'DESC')
                 ->orderBy('quotebook.BidPrice', 'DESC')
                 ->get()
-                ->map(function($quote) {
+                ->map(function($quote) use ($user) {
                     // Get transactions for this quote
-                    $transactions = $this->bk_db->table('quotetransactions')
-                        ->where('QuoteId', $quote->Id)
+                    $transactions = $this->bk_db->table('quotetransactions as qt')
+                        ->leftJoin('portaluserlogoninfo as p_init', 'qt.InitiatedBy', '=', 'p_init.Id')
+                        ->leftJoin('bondkonnect_db.users as u_init', 'p_init.Id', '=', 'u_init.portal_id')
+                        ->where('qt.QuoteId', $quote->Id)
+                        ->select('qt.*', 'p_init.Email as initiator_email', 'u_init.id as initiator_id', DB::raw("CONCAT(p_init.FirstName, ' ', IFNULL(p_init.OtherNames, '')) as initiator_name"))
                         ->get()
-                        ->map(function($transaction) {
+                        ->map(function($transaction) use ($quote, $user) {
+                            $isQuoteOwner = $quote->AssignedBy === $user->Email;
                             return [
                                 'id' => $transaction->Id,
                                 'transaction_no' => $transaction->TransactionNo,
@@ -1178,7 +1202,10 @@ class BondsController extends Controller
                                 'is_accepted' => $transaction->IsAccepted,
                                 'is_rejected' => $transaction->IsRejected,
                                 'is_delegated' => $transaction->IsDelegated,
-                                'created_on' => $transaction->created_on
+                                'created_on' => $transaction->created_on,
+                                'counterparty_id' => $isQuoteOwner ? $transaction->initiator_id : null,
+                                'counterparty_name' => $isQuoteOwner ? $transaction->initiator_name : 'Quote Owner',
+                                'counterparty_email' => $isQuoteOwner ? $transaction->initiator_email : $quote->AssignedBy
                             ];
                         });
 
@@ -1207,12 +1234,16 @@ class BondsController extends Controller
                     ->where('AssignedBy', $isDelegate->AssignedBy)
                     ->where('ExitDate', '>=', Carbon::now())
                     ->get()
-                    ->map(function($quote) {
+                    ->map(function($quote) use ($user) {
                         // Get transactions for this quote
-                        $transactions = $this->bk_db->table('quotetransactions')
-                            ->where('QuoteId', $quote->Id)
+                        $transactions = $this->bk_db->table('quotetransactions as qt')
+                            ->leftJoin('portaluserlogoninfo as p_init', 'qt.InitiatedBy', '=', 'p_init.Id')
+                            ->leftJoin('bondkonnect_db.users as u_init', 'p_init.Id', '=', 'u_init.portal_id')
+                            ->where('qt.QuoteId', $quote->Id)
+                            ->select('qt.*', 'p_init.Email as initiator_email', 'u_init.id as initiator_id', DB::raw("CONCAT(p_init.FirstName, ' ', IFNULL(p_init.OtherNames, '')) as initiator_name"))
                             ->get()
-                            ->map(function($transaction) {
+                            ->map(function($transaction) use ($quote, $user) {
+                                $isQuoteOwner = $quote->AssignedBy === $user->Email;
                                 return [
                                     'id' => $transaction->Id,
                                     'transaction_no' => $transaction->TransactionNo,
@@ -1226,7 +1257,10 @@ class BondsController extends Controller
                                     'is_accepted' => $transaction->IsAccepted,
                                     'is_rejected' => $transaction->IsRejected,
                                     'is_delegated' => $transaction->IsDelegated,
-                                    'created_on' => $transaction->created_on
+                                    'created_on' => $transaction->created_on,
+                                    'counterparty_id' => $isQuoteOwner ? $transaction->initiator_id : null,
+                                    'counterparty_name' => $isQuoteOwner ? $transaction->initiator_name : 'Quote Owner',
+                                    'counterparty_email' => $isQuoteOwner ? $transaction->initiator_email : $quote->AssignedBy
                                 ];
                             });
 
@@ -1247,12 +1281,16 @@ class BondsController extends Controller
                     ->where('ViewingParty', $isDelegate->AssignedBy)
                     ->where('ExitDate', '>=', Carbon::now())
                     ->get()
-                    ->map(function($quote) {
+                    ->map(function($quote) use ($user) {
                         // Get transactions for this quote
-                        $transactions = $this->bk_db->table('quotetransactions')
-                            ->where('QuoteId', $quote->Id)
+                        $transactions = $this->bk_db->table('quotetransactions as qt')
+                            ->leftJoin('portaluserlogoninfo as p_init', 'qt.InitiatedBy', '=', 'p_init.Id')
+                            ->leftJoin('bondkonnect_db.users as u_init', 'p_init.Id', '=', 'u_init.portal_id')
+                            ->where('qt.QuoteId', $quote->Id)
+                            ->select('qt.*', 'p_init.Email as initiator_email', 'u_init.id as initiator_id', DB::raw("CONCAT(p_init.FirstName, ' ', IFNULL(p_init.OtherNames, '')) as initiator_name"))
                             ->get()
-                            ->map(function($transaction) {
+                            ->map(function($transaction) use ($quote, $user) {
+                                $isQuoteOwner = $quote->AssignedBy === $user->Email;
                                 return [
                                     'id' => $transaction->Id,
                                     'transaction_no' => $transaction->TransactionNo,
@@ -1266,7 +1304,10 @@ class BondsController extends Controller
                                     'is_accepted' => $transaction->IsAccepted,
                                     'is_rejected' => $transaction->IsRejected,
                                     'is_delegated' => $transaction->IsDelegated,
-                                    'created_on' => $transaction->created_on
+                                    'created_on' => $transaction->created_on,
+                                    'counterparty_id' => $isQuoteOwner ? $transaction->initiator_id : null,
+                                    'counterparty_name' => $isQuoteOwner ? $transaction->initiator_name : 'Quote Owner',
+                                    'counterparty_email' => $isQuoteOwner ? $transaction->initiator_email : $quote->AssignedBy
                                 ];
                             });
 
@@ -1287,12 +1328,16 @@ class BondsController extends Controller
                     ->where('AssignedBy', $user->Id)
                     ->where('ExitDate', '>=', Carbon::now())
                     ->get()
-                    ->map(function($quote) {
+                    ->map(function($quote) use ($user) {
                         // Get transactions for this quote
-                        $transactions = $this->bk_db->table('quotetransactions')
-                            ->where('QuoteId', $quote->Id)
+                        $transactions = $this->bk_db->table('quotetransactions as qt')
+                            ->leftJoin('portaluserlogoninfo as p_init', 'qt.InitiatedBy', '=', 'p_init.Id')
+                            ->leftJoin('bondkonnect_db.users as u_init', 'p_init.Id', '=', 'u_init.portal_id')
+                            ->where('qt.QuoteId', $quote->Id)
+                            ->select('qt.*', 'p_init.Email as initiator_email', 'u_init.id as initiator_id', DB::raw("CONCAT(p_init.FirstName, ' ', IFNULL(p_init.OtherNames, '')) as initiator_name"))
                             ->get()
-                            ->map(function($transaction) {
+                            ->map(function($transaction) use ($quote, $user) {
+                                $isQuoteOwner = $quote->AssignedBy === $user->Email;
                                 return [
                                     'id' => $transaction->Id,
                                     'transaction_no' => $transaction->TransactionNo,
@@ -1306,7 +1351,10 @@ class BondsController extends Controller
                                     'is_accepted' => $transaction->IsAccepted,
                                     'is_rejected' => $transaction->IsRejected,
                                     'is_delegated' => $transaction->IsDelegated,
-                                    'created_on' => $transaction->created_on
+                                    'created_on' => $transaction->created_on,
+                                    'counterparty_id' => $isQuoteOwner ? $transaction->initiator_id : null,
+                                    'counterparty_name' => $isQuoteOwner ? $transaction->initiator_name : 'Quote Owner',
+                                    'counterparty_email' => $isQuoteOwner ? $transaction->initiator_email : $quote->AssignedBy
                                 ];
                             });
 
@@ -2269,19 +2317,25 @@ public function getUserTransactions(Request $request){
     }
 
     // Sent: InitiatedBy = user
-    $sentTransactions = $this->bk_db->table('quotetransactions')
-        ->where('InitiatedBy', $user->Id)
+    $sentTransactions = $this->bk_db->table('quotetransactions as qt')
+        ->join('quotebook as qb', 'qt.QuoteId', '=', 'qb.Id')
+        ->join('portaluserlogoninfo as p', 'qb.AssignedBy', '=', 'p.Id')
+        ->leftJoin('bondkonnect_db.users as u', 'p.Id', '=', 'u.portal_id')
+        ->where('qt.InitiatedBy', $user->Id)
+        ->select('qt.*', 'qb.PlacementNo', 'p.Email as ratee_email', 'u.id as ratee_id', DB::raw("CONCAT(p.FirstName, ' ', IFNULL(p.OtherNames, '')) as ratee_name"))
         ->get()
         ->map(function($item) {
             $item->transaction_type = 'Sent';
             return $item;
         });
 
-    // Received: QuoteId belongs to a quote where user is the owner (created_by)
+    // Received: QuoteId belongs to a quote where user is the owner (AssignedBy)
     $receivedTransactions = $this->bk_db->table('quotetransactions as qt')
         ->join('quotebook as qb', 'qt.QuoteId', '=', 'qb.Id')
-        ->where('qb.created_by', $user->Id)
-        ->select('qt.*')
+        ->join('portaluserlogoninfo as p', 'qt.InitiatedBy', '=', 'p.Id')
+        ->leftJoin('bondkonnect_db.users as u', 'p.Id', '=', 'u.portal_id')
+        ->where('qb.AssignedBy', $user->Id)
+        ->select('qt.*', 'qb.PlacementNo', 'p.Email as ratee_email', 'u.id as ratee_id', DB::raw("CONCAT(p.FirstName, ' ', IFNULL(p.OtherNames, '')) as ratee_name"))
         ->get()
         ->map(function($item) {
             $item->transaction_type = 'Received';
@@ -2299,42 +2353,15 @@ public function getUserTransactions(Request $request){
         // Get transactions assigned to the delegating user
         $delegatedTransactions = $this->bk_db->table('quotetransactions as qt')
             ->join('quotebook as qb', 'qt.QuoteId', '=', 'qb.Id')
+            ->join('portaluserlogoninfo as p', 'qt.InitiatedBy', '=', 'p.Id')
+            ->leftJoin('bondkonnect_db.users as u', 'p.Id', '=', 'u.portal_id')
             ->where('qb.AssignedBy', $isDelegate->AssignedBy)
-            ->select('qt.*')
+            ->select('qt.*', 'qb.PlacementNo', 'p.Email as ratee_email', 'u.id as ratee_id', DB::raw("CONCAT(p.FirstName, ' ', IFNULL(p.OtherNames, '')) as ratee_name"))
             ->get()
             ->map(function($item) {
                 $item->transaction_type = 'Delegated';
                 return $item;
             });
-
-        // Get transactions where delegating user is viewing party
-        $delegatedViewingPartyTransactions = $this->bk_db->table('quotetransactions as qt')
-            ->join('quotebook as qb', 'qt.QuoteId', '=', 'qb.Id')
-            ->where('qb.ViewingParty', $isDelegate->AssignedBy)
-            ->select('qt.*')
-            ->get()
-            ->map(function($item) {
-                $item->transaction_type = 'Delegated';
-                return $item;
-            });
-
-        // Get transactions delegated to the delegating user
-        $delegatedToUserTransactions = $this->bk_db->table('quotetransactions as qt')
-            ->join('quotebook as qb', 'qt.QuoteId', '=', 'qb.Id')
-            ->where('qb.AssignedBy', $user->Id)
-            ->select('qt.*')
-            ->get()
-            ->map(function($item) {
-                $item->transaction_type = 'Delegated';
-                return $item;
-            });
-
-        // Combine all delegated transactions
-        $delegatedTransactions = $delegatedTransactions
-            ->concat($delegatedViewingPartyTransactions)
-            ->concat($delegatedToUserTransactions)
-            ->unique('Id')
-            ->values();
     }
 
     // Merge all and remove duplicates (if any)

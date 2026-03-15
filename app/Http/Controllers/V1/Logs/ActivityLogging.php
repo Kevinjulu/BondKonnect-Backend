@@ -125,7 +125,7 @@ class ActivityLogging extends Controller
 
             foreach ($admins as $admin) {
                 // Create notification message
-                $message = "Critical Activity Alert: {$log->Action} by User ID {$log->UserId}";
+                $message = "Critical Activity Alert: {$log->Action} by User ID {$log->User}";
 
                 // Create notification link - points to activity logs view
                 $link = "/admin/activity-logs?log_id=" . $log_id;
@@ -243,12 +243,12 @@ class ActivityLogging extends Controller
                     'SeverityLevel' => $severity,
                     'UserAgent' => request()->userAgent(),
                     'StatusCode' => $statuscode,
-                    'IPAddress' => request()->ip(),
+                    'IpAddress' => request()->ip(),
                     'created_on' => Carbon::now(),
                     'RequestMethod' => request()->method(),
                     'RequestUrl' => request()->fullUrl(),
                     'RequestHeaders' => json_encode(request()->headers->all())
-                ]);
+                ], 'Id');
 
                 // Log critical events
                 if ($severity === self::SEVERITIES['CRITICAL']['level']) {
@@ -363,7 +363,7 @@ class ActivityLogging extends Controller
             try {
                 // Insert log entry
                 $log_id = $this->bk_db->table('activitylogs')->insertGetId([
-                    'UserId' => $user_id === 0 ? null : $user_id,
+                    'User' => $user_id === 0 ? null : $user_id,
                     'Role' => $role_id ?? null,
                     // 'OrganisationNumber' => $user->OrganisationNumber ?? null,
                     // 'CostCenter' => $user->CostCenter ?? null,
@@ -372,15 +372,15 @@ class ActivityLogging extends Controller
                     'Action' => $action,
                     'Description' => is_array($details) ? json_encode($details) : $details,
                     // 'Details' => is_array($details) ? json_encode($details) : $details,
-                    'Severity' => ActivityLogging::SEVERITIES[$severity]['level'],
+                    'SeverityLevel' => ActivityLogging::SEVERITIES[$severity]['level'],
                     'UserAgent' => request()->userAgent(),
-                    'IPAddress' => request()->ip(),
+                    'IpAddress' => request()->ip(),
                     'StatusCode' => request()->status(),
                     'created_on' => Carbon::now(),
                     'RequestMethod' => request()->method(),
                     'RequestUrl' => request()->fullUrl(),
                     'RequestHeaders' => json_encode(request()->headers->all())
-                ]);
+                ], 'Id');
 
                 // Log critical events
                 if ($severity === self::SEVERITIES['CRITICAL']['level']) {
@@ -428,13 +428,13 @@ class ActivityLogging extends Controller
 
             // Apply filters with updated field names
             if (isset($filters['user_id'])) {
-                $query->where('UserId', $filters['user_id']);
+                $query->where('User', $filters['user_id']);
             }
             if (isset($filters['activity_type'])) {
                 $query->where('ActivityType', $filters['activity_type']);
             }
             if (isset($filters['severity'])) {
-                $query->where('Severity', $filters['severity']);
+                $query->where('SeverityLevel', $filters['severity']);
             }
             if (isset($filters['date_from'])) {
                 $query->where('created_on', '>=', $filters['date_from']);
@@ -467,7 +467,7 @@ class ActivityLogging extends Controller
     {
         try {
             $stats = $this->bk_db->table('activitylogs')
-                ->where('UserId', $user_id)
+                ->where('User', $user_id)
                 ->select(
                     'ActivityType',
                     $this->bk_db->raw('COUNT(*) as count'),
@@ -592,11 +592,11 @@ class ActivityLogging extends Controller
                 foreach ($chunk as $log) {
                     fputcsv($handle, [
                         $log->Id,
-                        $log->UserId,
+                        $log->User,
                         $log->ActivityType,
                         $log->Action,
-                        is_string($log->Details) ? $log->Details : json_encode($log->Details),
-                        $log->Severity,
+                        is_string($log->Description) ? $log->Description : json_encode($log->Description),
+                        $log->SeverityLevel,
                         $log->created_on,
                         $log->RequestMethod,
                         $log->RequestUrl,
@@ -649,15 +649,15 @@ class ActivityLogging extends Controller
                 return [
                     'id' => $log->Id,
                     'user' => [
-                        'id' => $log->UserId
+                        'id' => $log->User
                     ],
                     'activity' => [
                         'type' => $log->ActivityType,
                         'action' => $log->Action,
-                        'details' => is_string($log->Details) ?
-                            json_decode($log->Details, true) ?? $log->Details :
-                            $log->Details,
-                        'severity' => $log->Severity
+                        'details' => is_string($log->Description) ?
+                            json_decode($log->Description, true) ?? $log->Description :
+                            $log->Description,
+                        'severity' => $log->SeverityLevel
                     ],
                     'request' => [
                         'method' => $log->RequestMethod,

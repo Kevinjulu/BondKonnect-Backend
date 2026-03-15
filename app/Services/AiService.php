@@ -10,12 +10,48 @@ class AiService
 {
     protected $apiKey;
     protected $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+    protected $embeddingUrl = 'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent';
     protected $bk_db;
 
     public function __construct()
     {
         $this->apiKey = env('GEMINI_API_KEY');
         $this->bk_db = DB::connection('bk_db');
+    }
+
+    /**
+     * Generate vector embedding for a given text.
+     */
+    public function getEmbedding($text)
+    {
+        if (!$this->apiKey) {
+            Log::error('AI Service: GEMINI_API_KEY is missing in .env');
+            return null;
+        }
+
+        try {
+            // Simplified request for v1beta embedContent
+            $response = Http::post($this->embeddingUrl . '?key=' . $this->apiKey, [
+                'content' => [
+                    'parts' => [
+                        ['text' => $text]
+                    ]
+                ]
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                if (isset($data['embedding']['values'])) {
+                    return $data['embedding']['values'];
+                }
+            }
+            
+            Log::error('Gemini Embedding Error: Status ' . $response->status() . ' - ' . $response->body());
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Embedding Exception: ' . $e->getMessage());
+            return null;
+        }
     }
 
     public function ask($prompt, $context = [])
@@ -27,9 +63,19 @@ class AiService
             ];
         }
 
-        // Gather real-time market context
+        // 1. Vector Search: Find relevant knowledge chunks
+        $embedding = $this->getEmbedding($prompt);
+        $siteContext = "";
+        if ($embedding) {
+            $chunks = \App\Models\KnowledgeChunk::search($embedding, 3)->get();
+            foreach ($chunks as $chunk) {
+                $siteContext .= "KNOWLEDGE FROM WEBSITE ({$chunk->section_title}):\n{$chunk->content}\n\n";
+            }
+        }
+
+        // 2. Gather real-time market context
         $marketContext = $this->getMarketContext();
-        $systemPrompt = $this->getSystemPrompt($context, $marketContext);
+        $systemPrompt = $this->getSystemPrompt($context, $marketContext, $siteContext);
 
         try {
             $response = Http::post($this->baseUrl . '?key=' . $this->apiKey, [
@@ -42,7 +88,7 @@ class AiService
                     ]
                 ],
                 'generationConfig' => [
-                    'temperature' => 0.7,
+                    'temperature' => 0.2, // Lower temperature for higher accuracy based on context
                     'topK' => 40,
                     'topP' => 0.95,
                     'maxOutputTokens' => 1024,
@@ -144,32 +190,28 @@ class AiService
         }
     }
 
-    protected function getSystemPrompt($context = [], $marketContext = '')
+    protected function getSystemPrompt($context = [], $marketContext = '', $siteContext = '')
     {
         $currentPage = $context['page'] ?? 'Dashboard';
-        
-        return "You are 'BondKonnect AI', a professional financial assistant specializing in the Kenyan Bond Market (NSE).
-        Your tone is professional, sophisticated, and helpful. You match the monochrome, high-performance 'Terminal' aesthetic of the BondKonnect platform.
 
-        CORE KNOWLEDGE:
-        - Expert on Kenyan Treasury Bonds (FXD, IFB, SSDK).
-        - Expert on Bond Math: Clean/Dirty Price, Accrued Interest, YTM.
-        - Tax knowledge: 15% for <10 yrs, 10% for >10 yrs, tax-free for IFBs.
+        return "You are 'BondKonnect AI Concierge', a specialized assistant for the BondKonnect platform.
+        Your MISSION is to help users navigate and understand the BondKonnect website and the Kenyan Bond Market using ONLY the provided knowledge.
 
-        REAL-TIME MARKET SNAPSHOT:
+        STRICT RULES:
+        1. NO EXTERNAL KNOWLEDGE: Only answer based on the 'WEBSITE KNOWLEDGE' and 'MARKET SNAPSHOT' below. 
+        2. If the answer is NOT in the provided context, politely say: 'I apologize, but I only have information regarding BondKonnect and the Kenyan Bond Market. I cannot answer that question.'
+        3. DO NOT talk about other websites, general news, or non-bond financial topics (e.g., crypto, stocks).
+        4. When giving directions, use the exact Page Routes and UI names from the context.
+
+        WEBSITE KNOWLEDGE (Source: Ground Truth):
+        {$siteContext}
+
+        REAL-TIME MARKET SNAPSHOT (Source: Live Data):
         {$marketContext}
 
         USER CONTEXT:
-        - The user is currently on the: {$currentPage}.
-        - Help the user interpret the data they might be seeing on this page.
+        - Current Page: {$currentPage}
 
-        GUIDELINES:
-        - Be concise. Traders value speed.
-        - Use the REAL-TIME MARKET SNAPSHOT data whenever relevant to be more accurate.
-        - If asked about calculations, explain the logic.
-        - NEVER give definitive financial advice. Always include a subtle disclaimer.
-        - Use KES as primary currency.
-
-        Keep responses formatted in clean Markdown.";
+        Format responses in clean Markdown. Use KES currency. Maintain a professional, terminal-like tone.";
     }
-}
+    }

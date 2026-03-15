@@ -7,15 +7,18 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Disable transactions for this migration.
+     */
+    public $withinTransaction = false;
+
+    /**
      * Run the migrations.
      */
     public function up(): void
     {
-        // Only add FK if column exists and fk not present
+        // Only add FK if column exists
         if (Schema::hasTable('payments') && Schema::hasTable('users')) {
             Schema::table('payments', function (Blueprint $table) {
-                // avoid adding FK twice
-                $sm = Schema::getConnection()->getDoctrineSchemaManager();
                 // Add foreign key; Laravel will handle if not present
                 $table->foreign('user_id', 'fk_payments_user_id')
                     ->references('id')->on('users')

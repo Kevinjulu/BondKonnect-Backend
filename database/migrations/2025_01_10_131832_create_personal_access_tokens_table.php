@@ -7,13 +7,20 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Disable transaction for this migration to reveal the underlying error.
+     */
+    public $withinTransaction = false;
+
+    /**
      * Run the migrations.
      */
     public function up(): void
     {
         Schema::create('personal_access_tokens', function (Blueprint $table) {
             $table->id();
-            $table->morphs('tokenable');
+            $table->string('tokenable_type', 191);
+            $table->unsignedBigInteger('tokenable_id');
+            $table->index(['tokenable_type', 'tokenable_id']);
             $table->string('name');
             $table->string('token', 64)->unique();
             $table->text('abilities')->nullable();

@@ -1,21 +1,26 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use Illuminate\Support\Facades\DB;
+
 abstract class Controller
 {
-
-    protected $bk_api_db;
-    protected $bk_db;
-    public function __construct()
+    // Do not define properties as they prevent __get from being called if they are null
+    
+    /**
+     * Lazy load database connections
+     */
+    public function __get($name)
     {
-
-     // Set up database connections
-     $this->bk_api_db = DB::connection('bk_api_db');  // Uses 'dbmysql' configuration from config/database.php
-     $this->bk_db = DB::connection('bk_db');  // Uses the default 'mysql' connection
-
-     // Optionally print out the selected database for further debugging
-    //  print_r(DB::connection('dbmysql')->getDatabaseName());
-    //  print_r(DB::connection('mysql')->getDatabaseName());
+        if ($name === 'bk_api_db') {
+            return $this->bk_api_db = DB::connection('bk_api_db');
+        }
+        if ($name === 'bk_db') {
+            return $this->bk_db = DB::connection('bk_db');
+        }
+        
+        // Handle other property access if needed, or return null
+        return null;
     }
 }

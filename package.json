@@ -5,6 +5,10 @@
         "dev": "vite",
         "build": "vite build"
     },
+    "dependencies": {
+        "laravel-echo": "^2.1.6",
+        "pusher-js": "^8.4.0"
+    },
     "devDependencies": {
         "axios": "^1.7.4",
         "laravel-vite-plugin": "^1.0.0",

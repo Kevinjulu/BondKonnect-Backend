@@ -41,162 +41,86 @@ return [
             'journal_mode' => null,
             'synchronous' => null,
         ],
+
         'bk_api_db' => [
-            'driver' => 'mysql',
-            'url' => env('DATABASE_URL') ?: env('DB_URL'),
-            'host' => match (env('APP_ENV')) {
-                'production' => env('DB_HOST_PROD'),
-                'uat' => env('DB_HOST_UAT'),
-                'dev' => env('DB_HOST_DEV'),
-                default => env('DB_HOST'),
-            },
-            'port' => match (env('APP_ENV')) {
-                'production' => env('DB_PORT_PROD'),
-                'uat' => env('DB_PORT_UAT'),
-                'dev' => env('DB_PORT_DEV'),
-                default => env('DB_PORT'),
-            },
-            'database' => match (env('APP_ENV')) {
-                'production' => env('DB_DATABASE_PROD'),
-                'uat' => env('DB_DATABASE_UAT'),
-                'dev' => env('DB_DATABASE_DEV'),
-                default => env('DB_DATABASE'),
-            },
-            'username' => match (env('APP_ENV')) {
-                'production' => env('DB_USERNAME_PROD'),
-                'uat' => env('DB_USERNAME_UAT'),
-                'dev' => env('DB_USERNAME_DEV'),
-                default => env('DB_USERNAME'),
-            },
-            'password' => match (env('APP_ENV')) {
-                'production' => env('DB_PASSWORD_PROD'),
-                'uat' => env('DB_PASSWORD_UAT'),
-                'dev' => env('DB_PASSWORD_DEV'),
-                default => env('DB_PASSWORD'),
-            },
-
-            'unix_socket' => env('DB_SOCKET', ''),
-            'charset' => env('DB_CHARSET', 'utf8mb4'),
-            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'strict' => true,
-            'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
-        ],
-
-        // 'bk_db' => [
-        //     'driver' => 'mysql',
-        //     'url' => env('DB_URL'),
-        //     'host' => env('DB_HOST', '127.0.0.1'),
-        //     'port' => env('DB_PORT', '3307'),
-        //     'database' => env('DB_DATABASE', 'laravel'),
-        //     'username' => env('DB_USERNAME', 'root'),
-        //     'password' => env('DB_PASSWORD', ''),
-        //     'unix_socket' => env('DB_SOCKET', ''),
-        //     'charset' => env('DB_CHARSET', 'utf8mb4'),
-        //     'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
-        //     'prefix' => '',
-        //     'prefix_indexes' => true,
-        //     'strict' => true,
-        //     'engine' => null,
-        //     'options' => extension_loaded('pdo_mysql') ? array_filter([
-        //         PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-        //     ]) : [],
-        // ],
-        'bk_db' => [
-            'driver' => 'mysql',
-            'url' => env('DATABASE_URL') ?: env('DB_URL'),
-            'host' => match (env('APP_ENV')) {
-                'production' => env('BK_HOST_PROD'),
-                'uat' => env('BK_HOST_UAT'),
-                'dev' => env('BK_HOST_DEV'),
-                default => env('BK_HOST'),
-            },
-            'port' => match (env('APP_ENV')) {
-                'production' => env('BK_PORT_PROD'),
-                'uat' => env('BK_PORT_UAT'),
-                'dev' => env('BK_PORT_DEV'),
-                default => env('BK_PORT'),
-            },
-            'database' => match (env('APP_ENV')) {
-                'production' => env('BK_DATABASE_PROD'),
-                'uat' => env('BK_DATABASE_UAT'),
-                'dev' => env('BK_DATABASE_DEV'),
-                default => env('BK_DATABASE'),
-            },
-            'username' => match (env('APP_ENV')) {
-                'production' => env('BK_USERNAME_PROD'),
-                'uat' => env('BK_USERNAME_UAT'),
-                'dev' => env('BK_USERNAME_DEV'),
-                default => env('BK_USERNAME'),
-            },
-            'password' => match (env('APP_ENV')) {
-                'production' => env('BK_PASSWORD_PROD'),
-                'uat' => env('BK_PASSWORD_UAT'),
-                'dev' => env('BK_PASSWORD_DEV'),
-                default => env('BK_PASSWORD'),
-            },
+            'driver' => env('BK_API_DB_DRIVER', 'pgsql'),
+            'url' => env('DATABASE_URL'),
+            'host' => env('DB_HOST'),
+            'port' => env('DB_PORT', '5432'),
+            'database' => env('DB_DATABASE'),
+            'username' => env('DB_USERNAME'),
+            'password' => env('DB_PASSWORD'),
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
-            'options' => [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            ],
+            'search_path' => 'public',
+            'sslmode' => env('BK_API_DB_SSLMODE', 'require'),
+        ],
+
+        'bk_db' => [
+            'driver' => env('BK_DB_DRIVER', 'pgsql'),
+            'url' => env('DATABASE_URL'),
+            'host' => env('BK_HOST'),
+            'port' => env('BK_PORT', '5432'),
+            'database' => env('BK_DATABASE'),
+            'username' => env('BK_USERNAME'),
+            'password' => env('BK_PASSWORD'),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => env('BK_DB_SSLMODE', 'require'),
         ],
 
 
-        'mariadb' => [
-            'driver' => 'mariadb',
-            'url' => env('DB_URL'),
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '3306'),
-            'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
-            'unix_socket' => env('DB_SOCKET', ''),
-            'charset' => env('DB_CHARSET', 'utf8mb4'),
-            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+
+        'render_db' => [
+            'driver' => 'pgsql',
+            'host' => env('RENDER_DB_HOST'),
+            'port' => env('RENDER_DB_PORT', '5432'),
+            'database' => env('RENDER_DB_NAME'),
+            'username' => env('RENDER_DB_USER'),
+            'password' => env('RENDER_DB_PASSWORD'),
+            'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
-            'strict' => true,
-            'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
+            'search_path' => 'public',
+            'sslmode' => 'require',
         ],
 
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => env('DATABASE_URL') ?: env('DB_URL'),
+            'url' => env('DATABASE_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
             'database' => env('DB_DATABASE', 'laravel'),
             'username' => env('DB_USERNAME', 'root'),
             'password' => env('DB_PASSWORD', ''),
-            'charset' => env('DB_CHARSET', 'utf8'),
+            'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'prefer',
+            'sslmode' => env('DB_SSLMODE', 'require'),
         ],
 
-        'sqlsrv' => [
-            'driver' => 'sqlsrv',
+        'mysql' => [
+            'driver' => 'mysql',
             'url' => env('DB_URL'),
-            'host' => env('DB_HOST', 'localhost'),
-            'port' => env('DB_PORT', '1433'),
-            'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('DB_DATABASE', 'forge'),
+            'username' => env('DB_USERNAME', 'forge'),
             'password' => env('DB_PASSWORD', ''),
-            'charset' => env('DB_CHARSET', 'utf8'),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',
             'prefix_indexes' => true,
-            // 'encrypt' => env('DB_ENCRYPT', 'yes'),
-            // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
         ],
 
     ],
@@ -208,7 +132,7 @@ return [
     |
     | This table keeps track of all the migrations that have already run for
     | your application. Using this information, we can determine which of
-    | the migrations on disk haven't actually been run on the database.
+    | the migrations on disk haven't actually been run in the database.
     |
     */
 
@@ -224,13 +148,13 @@ return [
     |
     | Redis is an open source, fast, and advanced key-value store that also
     | provides a richer body of commands than a typical key-value system
-    | such as Memcached. You may define your connection settings here.
+    | such as APC or Memcached. Laravel makes it easy to dig right in.
     |
     */
 
     'redis' => [
 
-        'client' => env('REDIS_CLIENT', 'predis'),
+        'client' => env('REDIS_CLIENT', 'phpredis'),
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),

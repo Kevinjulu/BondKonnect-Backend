@@ -47,7 +47,8 @@ class DeveloperUserSeeder extends Seeder
                 'IsLocal' => true,
                 'IsForeign' => false,
                 'IsActive' => true,
-            ]);
+            ], 'Id');
+
 
             $this->command->info("User {$email} created with ID: {$userId}");
         }

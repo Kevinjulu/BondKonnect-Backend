@@ -52,12 +52,12 @@ return [
     |
     */
 
-    // 'url' => env('APP_URL', 'http://localhost'),
+    // Ensure a safe default URL is available in console contexts.
     'url' => match (env('APP_ENV')) {
-        'production' => env('APP_URL_PROD', env('APP_URL')),
-        'uat' => env('APP_URL_UAT', env('APP_URL')),
-        'dev' => env('APP_URL', env('APP_URL')),
-        default => env('APP_URL'),
+        'production' => env('APP_URL_PROD', env('APP_URL', 'http://localhost')),
+        'uat' => env('APP_URL_UAT', env('APP_URL', 'http://localhost')),
+        'dev' => env('APP_URL', 'http://localhost'),
+        default => env('APP_URL', 'http://localhost'),
     },
     /*
     |--------------------------------------------------------------------------

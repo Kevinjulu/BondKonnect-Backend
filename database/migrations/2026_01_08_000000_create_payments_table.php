@@ -22,7 +22,7 @@ return new class extends Migration
             $column->string('currency')->default('USD');
             $column->string('status')->default('pending'); // pending, completed, failed, cancelled
             $column->string('reference')->nullable(); // MpesaReceiptNumber or PayPal Order ID
-            $column->string('gateway_checkout_id')->unique()->nullable(); // M-Pesa CheckoutRequestID
+            $column->string('gateway_checkout_id', 191)->unique()->nullable(); // M-Pesa CheckoutRequestID
             $column->json('raw_response')->nullable();
             $column->timestamps();
         });
