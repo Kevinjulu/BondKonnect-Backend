@@ -358,18 +358,3 @@ Route::group(
     }
 );
 
-Route::get('/db-test', function () {
-    try {
-        \Illuminate\Support\Facades\DB::connection()->getPdo();
-        return response()->json([
-            'status' => 'connected',
-            'database' => \Illuminate\Support\Facades\DB::connection()->getDatabaseName(),
-            'connection' => config('database.default')
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $e->getMessage()
-        ], 500);
-    }
-});
