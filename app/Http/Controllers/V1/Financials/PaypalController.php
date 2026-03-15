@@ -194,12 +194,12 @@ class PaypalController extends Controller
                     // Prevent double-processing
                     if ($payment->status === 'completed') {
                         DB::rollBack();
-                        Log::info('PayPal webhook: payment already completed', ['payment_id' => $payment->id]);
+                        Log::info('PayPal webhook: payment already completed', ['payment_id' => $payment->Id]);
 
                         return response()->json(['success' => true]); // Idempotent
                     }
 
-                    DB::table('payments')->where('id', $payment->id)->update([
+                    DB::table('payments')->where('Id', $payment->Id)->update([
                         'status' => 'completed',
                         'reference' => $resource['id'] ?? $payment->reference,
                         'raw_response' => json_encode($event),
@@ -216,7 +216,7 @@ class PaypalController extends Controller
                     }
 
                     Log::info('PayPal webhook: marked payment completed', [
-                        'payment_id' => $payment->id,
+                        'payment_id' => $payment->Id,
                         'user_email' => $paymentEmail,
                         'resource_id' => $resource['id'] ?? 'unknown',
                     ]);

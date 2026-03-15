@@ -63,7 +63,7 @@ class KenyaMockDataSeeder extends Seeder
                 'IsForeign' => false,
                 'IsActive' => true,
                 'created_on' => Carbon::now(),
-            ]);
+            ], 'Id');
 
             // 2. Create the corresponding Laravel auth user
             DB::table('users')->insert([
@@ -193,7 +193,7 @@ class KenyaMockDataSeeder extends Seeder
                 'ValueDate' => Carbon::now(),
                 'UserId' => $user->Id,
                 'created_on' => Carbon::now(),
-            ]);
+            ], 'Id');
 
             // Add 2-3 random bonds to this portfolio
             foreach ($bonds->random(rand(2, 3)) as $bond) {

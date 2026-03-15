@@ -121,7 +121,7 @@ public function processIntermediaries($userid, $dealers) {
                             'AccountId' => $accountid,
                             'Email' => $email,
                             'IsActive' => false,
-                        ]);
+                        ], 'Id');
 
                         // insert the broker role for each first
                         $roleData = [
@@ -359,7 +359,7 @@ public function processCorporateIntermediaries($userid, $dealers) {
                             'AccountId' => $accountid,
                             'Email' => $email,
                             'IsActive' => false,
-                        ]);
+                        ], 'Id');
 
                         // insert the broker role for each first
                         $roleData = [

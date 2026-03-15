@@ -12,6 +12,27 @@ class RatingDispute extends Model
 
     protected $table = 'rating_disputes';
 
+    /**
+     * The primary key for the model.
+     *
+     * @var string
+     */
+    protected $primaryKey = 'Id';
+
+    /**
+     * Indicates if the IDs are auto-incrementing.
+     *
+     * @var bool
+     */
+    public $incrementing = true;
+
+    /**
+     * The "type" of the primary key ID.
+     *
+     * @var string
+     */
+    protected $keyType = 'int';
+
     protected $fillable = [
         'rating_id',
         'disputed_by',

@@ -31,7 +31,7 @@ class MessageController extends Controller
             'IsDelete' => false,
             'created_by' => $created_by->Id,
             'created_on' => Carbon::now()
-        ]);
+        ], 'Id');
     }
 
     private function createMessageReply($request)
@@ -49,7 +49,7 @@ class MessageController extends Controller
             'IsDelete' => false,
             'created_on' => Carbon::now(),
             'created_by' => $created_by->Id,
-        ]);
+        ], 'Id');
     }
 
     private function handleAttachments($attachments, $message_id, $created_by, $is_reply, $is_main_message)

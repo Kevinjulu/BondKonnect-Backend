@@ -12,6 +12,27 @@ class CredibilityScoreHistory extends Model
 
     protected $table = 'credibility_score_history';
 
+    /**
+     * The primary key for the model.
+     *
+     * @var string
+     */
+    protected $primaryKey = 'Id';
+
+    /**
+     * Indicates if the IDs are auto-incrementing.
+     *
+     * @var bool
+     */
+    public $incrementing = true;
+
+    /**
+     * The "type" of the primary key ID.
+     *
+     * @var string
+     */
+    protected $keyType = 'int';
+
     public $timestamps = false; // Only has created_at
 
     protected $fillable = [

@@ -13,6 +13,27 @@ class UserCredibilityScore extends Model
 
     protected $table = 'user_credibility_scores';
 
+    /**
+     * The primary key for the model.
+     *
+     * @var string
+     */
+    protected $primaryKey = 'Id';
+
+    /**
+     * Indicates if the IDs are auto-incrementing.
+     *
+     * @var bool
+     */
+    public $incrementing = true;
+
+    /**
+     * The "type" of the primary key ID.
+     *
+     * @var string
+     */
+    protected $keyType = 'int';
+
     protected $fillable = [
         'user_id',
         'total_ratings_count',

@@ -409,7 +409,7 @@ class PermissionManagement extends Controller
                 Log::info("Creating new user role permission record");
                 $permissionRecord['created_on'] = Carbon::now();
                 $userRolePermissionId = $this->bk_db->table('portaluserrolepermissions')
-                    ->insertGetId($permissionRecord);
+                    ->insertGetId($permissionRecord, 'Id');
                 Log::info("New permission record created with ID: " . $userRolePermissionId);
             } else {
                 Log::info("Updating existing user role permission record: " . $userRolePermission->Id);
