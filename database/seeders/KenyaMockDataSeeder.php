@@ -31,12 +31,10 @@ class KenyaMockDataSeeder extends Seeder
     {
         $this->command->info('Seeding users...');
 
-        // Truncate tables for a clean seed
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        // Truncate tables for a clean seed - Child tables first to respect FKs
+        DB::table('userroles')->truncate();
         DB::table('portaluserlogoninfo')->truncate();
         DB::table('users')->truncate();
-        DB::table('userroles')->truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         $roles = DB::table('roles')->pluck('Id', 'Name')->all();
 
