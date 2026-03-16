@@ -609,7 +609,7 @@ class CommunicationManagement extends Controller
                 'IsSent' => $request->schedule_date ? false : true,
                 'ScheduleDate' => $request->schedule_date,
                 'RoleGroupSendingTo' => $request->send_to_role
-            ]);
+            ], 'Id');
 
             // Handle attachments if present
             $attachmentIds = [];
@@ -726,7 +726,7 @@ class CommunicationManagement extends Controller
                 'IsForAdmin' => false,
                 'created_by' => $userId,
                 'created_on' => Carbon::now()
-            ]);
+            ], 'Id');
         } catch (\Throwable $th) {
             Log::error('Error handling email attachment:', ['error' => $th->getMessage()]);
             return null;
@@ -908,7 +908,7 @@ class CommunicationManagement extends Controller
                 'IsSent' => $request->schedule_date ? false : true,
                 'AllRecipientsPhoneNo' => json_encode($request->recipients),
                 // 'RoleGroupSendingTo' => $request->send_to_role // Need to map role name to ID if needed
-            ]);
+            ], 'Id');
 
             // If not scheduled, simulate sending (or integrate with an actual SMS gateway here)
             if (!$request->schedule_date) {

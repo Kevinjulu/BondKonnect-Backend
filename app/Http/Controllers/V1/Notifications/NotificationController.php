@@ -335,7 +335,7 @@ class NotificationController extends Controller
                 'IsArchive' => false,
                 'IsFavorite' => false,
                 'created_on' => Carbon::now(),
-            ]);
+            ], 'Id');
 
             // Prepare notification data for broadcasting
             $notificationData = [
@@ -403,7 +403,7 @@ public function sendUserNotification(Request $request)
             'IsArchive' => false,
             'IsFavorite' => false,
             'created_on' => Carbon::now(),
-        ]);
+        ], 'Id');
 
         // Prepare notification data for broadcasting
         $notificationData = [

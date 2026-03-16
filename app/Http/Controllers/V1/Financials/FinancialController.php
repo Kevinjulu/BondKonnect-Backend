@@ -53,7 +53,7 @@ class FinancialController extends Controller
                 'IsActive' => true,
                 'created_by' => $user->Id,
                 'created_on' => Carbon::now()
-            ]);
+            ], 'Id');
 
             $this->bk_db->commit();
 
@@ -113,7 +113,7 @@ class FinancialController extends Controller
                 'Level' => $request->level,
                 'created_by' => $user->Id,
                 'created_on' => Carbon::now()
-            ]);
+            ], 'Id');
 
             $this->bk_db->commit();
 
@@ -177,7 +177,7 @@ class FinancialController extends Controller
                 'Level' => $request->level,
                 'created_by' => $user->Id,
                 'created_on' => Carbon::now()
-            ]);
+            ], 'Id');
 
             $this->bk_db->commit();
 
@@ -243,7 +243,7 @@ class FinancialController extends Controller
                 'Description' => $request->description,
                 'created_by' => $user->Id,
                 'created_on' => Carbon::now()
-            ]);
+            ], 'Id');
 
             $this->bk_db->commit();
 
@@ -580,7 +580,7 @@ class FinancialController extends Controller
                 'SubscriptionStatus' => $request->subscription_status,
                 'created_by' => $user->Id,
                 'created_on' => Carbon::now()
-            ]);
+            ], 'Id');
 
             $this->bk_db->commit();
 

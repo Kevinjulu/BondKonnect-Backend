@@ -131,7 +131,7 @@ class MpesaController extends Controller
 
             // Update payment record
             DB::table('payments')
-                ->where('id', $payment->id)
+                ->where('Id', $payment->Id)
                 ->update([
                     'status' => $status,
                     'reference' => $reference,

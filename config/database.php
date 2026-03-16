@@ -72,35 +72,6 @@ return [
             'sslmode' => env('BK_DB_SSLMODE', 'require'),
         ],
 
-        'railway_db' => [
-            'driver' => 'pgsql',
-            'url' => env('DATABASE_URL'), // Railway provides this automatically
-            'host' => env('DB_HOST'),
-            'port' => env('DB_PORT', '5432'),
-            'database' => env('DB_DATABASE'),
-            'username' => env('DB_USERNAME'),
-            'password' => env('DB_PASSWORD'),
-            'charset' => 'utf8',
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'search_path' => 'public',
-            'sslmode' => 'require',
-        ],
-
-        'render_db' => [
-            'driver' => 'pgsql',
-            'host' => env('RENDER_DB_HOST'),
-            'port' => env('RENDER_DB_PORT', '5432'),
-            'database' => env('RENDER_DB_NAME'),
-            'username' => env('RENDER_DB_USER'),
-            'password' => env('RENDER_DB_PASSWORD'),
-            'charset' => 'utf8',
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'search_path' => 'public',
-            'sslmode' => 'require',
-        ],
-
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DATABASE_URL'),

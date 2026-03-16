@@ -44,12 +44,12 @@ class BackfillPaymentsUserId extends Command
         // Show sample unmatched
         $sample = $connection->table('payments')
             ->whereNull('user_id')
-            ->select('id', 'user_email')
+            ->select('Id', 'user_email')
             ->limit(10)
             ->get();
 
         $this->info('Sample payments missing user_id:');
-        $this->table(['id', 'user_email'], $sample->map(function($r){ return (array)$r; })->toArray());
+        $this->table(['Id', 'user_email'], $sample->map(function($r){ return (array)$r; })->toArray());
 
         if (!$execute) {
             $this->info('Dry-run complete. Rerun with --execute to apply updates.');
@@ -60,7 +60,7 @@ class BackfillPaymentsUserId extends Command
 
         $processed = 0;
         $connection->transaction(function() use (&$processed, $connection, $chunk, $runId) {
-            $connection->table('payments')->whereNull('user_id')->orderBy('id')->chunk($chunk, function($payments) use (&$processed, $connection, $runId) {
+            $connection->table('payments')->whereNull('user_id')->orderBy('Id')->chunk($chunk, function($payments) use (&$processed, $connection, $runId) {
                 foreach ($payments as $p) {
                     $email = trim(strtolower($p->user_email ?? ''));
                     if (empty($email)) continue;
@@ -71,11 +71,11 @@ class BackfillPaymentsUserId extends Command
                         $new = $user->id;
 
                         // Update payment
-                        $connection->table('payments')->where('id', $p->id)->update(['user_id' => $new]);
+                        $connection->table('payments')->where('Id', $p->Id)->update(['user_id' => $new]);
 
                         // Log change
                         $connection->table('payment_user_backfill_log')->insert([
-                            'payment_id' => $p->id,
+                            'payment_id' => $p->Id,
                             'old_user_id' => $old,
                             'new_user_id' => $new,
                             'run_id' => $runId,

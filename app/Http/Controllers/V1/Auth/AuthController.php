@@ -170,7 +170,7 @@ class AuthController extends Controller
                 $this->bk_db->beginTransaction();
 
                 // insert and get the id
-                $inserted = $this->bk_db->table('portaluserlogoninfo')->insertGetId($userData);
+                $inserted = $this->bk_db->table('portaluserlogoninfo')->insertGetId($userData, 'Id');
                 if ($inserted) {
 
                     // Process broker_dealer, alternate_dealer, and new_dealer_emails
@@ -329,7 +329,7 @@ class AuthController extends Controller
                 $this->bk_db->beginTransaction();
 
                 // insert and get the id
-                $inserted = $this->bk_db->table('portaluserlogoninfo')->insertGetId($userData);
+                $inserted = $this->bk_db->table('portaluserlogoninfo')->insertGetId($userData, 'Id');
                 if ($inserted) {
 
                     // Process broker_dealer, alternate_dealer, and new_dealer_emails
@@ -478,7 +478,7 @@ class AuthController extends Controller
                 $this->bk_db->beginTransaction();
 
                 // insert and get the id
-                $inserted = $this->bk_db->table('portaluserlogoninfo')->insertGetId($userData);
+                $inserted = $this->bk_db->table('portaluserlogoninfo')->insertGetId($userData, 'Id');
                 if ($inserted) {
 
                     // Process broker_dealer, alternate_dealer, and new_dealer_emails
@@ -624,7 +624,7 @@ class AuthController extends Controller
                 $this->bk_db->beginTransaction();
 
                 // insert and get the id
-                $inserted = $this->bk_db->table('portaluserlogoninfo')->insertGetId($userData);
+                $inserted = $this->bk_db->table('portaluserlogoninfo')->insertGetId($userData, 'Id');
                 if ($inserted) {
                     // insert the role
                     $roleData = [

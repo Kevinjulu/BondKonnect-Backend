@@ -31,12 +31,10 @@ class KenyaMockDataSeeder extends Seeder
     {
         $this->command->info('Seeding users...');
 
-        // Truncate tables for a clean seed
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        // Truncate tables for a clean seed - Child tables first to respect FKs
+        DB::table('userroles')->truncate();
         DB::table('portaluserlogoninfo')->truncate();
         DB::table('users')->truncate();
-        DB::table('userroles')->truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         $roles = DB::table('roles')->pluck('Id', 'Name')->all();
 
@@ -65,7 +63,7 @@ class KenyaMockDataSeeder extends Seeder
                 'IsForeign' => false,
                 'IsActive' => true,
                 'created_on' => Carbon::now(),
-            ]);
+            ], 'Id');
 
             // 2. Create the corresponding Laravel auth user
             DB::table('users')->insert([
@@ -195,7 +193,7 @@ class KenyaMockDataSeeder extends Seeder
                 'ValueDate' => Carbon::now(),
                 'UserId' => $user->Id,
                 'created_on' => Carbon::now(),
-            ]);
+            ], 'Id');
 
             // Add 2-3 random bonds to this portfolio
             foreach ($bonds->random(rand(2, 3)) as $bond) {

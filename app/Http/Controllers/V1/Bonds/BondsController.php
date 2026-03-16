@@ -298,7 +298,7 @@ class BondsController extends Controller
                 'UserId' => $user->Id,
                 'created_by' => $user->Id,
                 'created_on' => Carbon::now()
-            ]);
+            ], 'Id');
 
             // Add bonds to portfolio data
             foreach ($request->bonds as $bond) {
@@ -943,8 +943,7 @@ class BondsController extends Controller
                 'ExitDate' => now()->addWeekdays(3),
                 'created_on' => Carbon::now(),
                 'created_by' => $user->Id,
-
-            ]);
+                ], 'Id');
 
             // If viewing party is set, send notification and email
             // if ($viewing_party_id) {
@@ -1824,7 +1823,7 @@ class BondsController extends Controller
                 'ExitDate' => now()->addWeekdays(3),
                 'created_on' => Carbon::now(),
                 'created_by' => $user->Id,
-            ]);
+                ], 'Id');
         } elseif ($isBid->IsOffer == 1 && $bid_amount > $offer_amount) {
             $additional_amount = $bid_amount - $offer_amount;
 
@@ -1848,7 +1847,7 @@ class BondsController extends Controller
                 'ExitDate' => now()->addWeekdays(3),
                 'created_on' => Carbon::now(),
                 'created_by' => $user->Id,
-            ]);
+                ], 'Id');
         }
 
 
@@ -1870,7 +1869,7 @@ class BondsController extends Controller
                         'IsRejected' => false,
                         'IsDelegated' => false
                         // 'IsActive' => true
-                    ]);
+                        ], 'Id');
 
             // Get user details for notification
             // $stdfns = new StandardFunctions();
