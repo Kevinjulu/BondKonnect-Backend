@@ -7,7 +7,7 @@ The AI Assistant is built using a **RAG (Retrieval-Augmented Generation)** archi
 
 ### Core Components
 1.  **Knowledge Base:** Markdown files in `storage/app/ai_knowledge/` covering UI navigation, market rules, and user guides.
-2.  **Vector Store:** Neon PostgreSQL table `knowledge_chunks` using the `pgvector` extension for similarity searching.
+2.  **Vector Store:** Railway PostgreSQL table `knowledge_chunks` using the `pgvector` extension for similarity searching.
 3.  **Embedding Engine:** Currently uses Gemini's `text-embedding-004` to convert text into 1536-dimension vectors.
 4.  **Reasoning Engine:** Currently uses Gemini-2.0-Flash to formulate responses based on retrieved context.
 

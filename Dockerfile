@@ -45,6 +45,6 @@ RUN npm install && npm run build
 # Expose port
 EXPOSE 10000
 
-# Final Start Command: Run migrations and seed for Neon initialization
+# Final Start Command: Run migrations and seed for Railway initialization
 CMD php artisan migrate --force --seed && \
     php artisan serve --host 0.0.0.0 --port ${PORT:-10000}

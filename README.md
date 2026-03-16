@@ -8,9 +8,9 @@ BondKonnect's backend follows a **Service-Oriented Architecture** (SOA), decoupl
 
 - **Framework:** [Laravel 11.x](https://laravel.com/) (latest stable)
 - **Language:** PHP 8.2+
-- **Database:** [Neon PostgreSQL](https://neon.tech/) (Serverless PostgreSQL for high availability and instant branching)
+- **Database:** [Railway PostgreSQL](https://railway.app/) (Managed PostgreSQL for high availability and performance)
 - **Real-time Engine:** [Pusher](https://pusher.com/) for WebSocket broadcasting (Yield curves, live quotes).
-- **Caching & Queues:** Redis 7+ for low-latency session management and background job processing.
+- **Caching & Queues:** Railway Redis 7+ for low-latency session management and background job processing.
 - **AI Integration:** [AiService](./app/Services/AiService.php) for market analysis and predictive yield calculations.
 
 ---
@@ -56,7 +56,7 @@ BondKonnect goes beyond standard authentication to protect sensitive financial d
 
 ### 1. Prerequisites
 - PHP 8.2+ & Composer
-- MySQL 8+ or PostgreSQL (Neon recommended)
+- MySQL 8+ or PostgreSQL (Railway recommended)
 - Redis
 
 ### 2. Installation
@@ -67,8 +67,8 @@ composer install
 ### 3. Environment Configuration
 Copy `.env.example` to `.env` and configure your credentials:
 ```env
-DB_CONNECTION=pgsql # Use pgsql for Neon PostgreSQL
-DB_URL="your-neon-connection-string"
+DB_CONNECTION=pgsql # Use pgsql for Railway PostgreSQL
+DB_URL="your-railway-connection-string"
 
 MPESA_CONSUMER_KEY=your-key
 MPESA_CONSUMER_SECRET=your-secret
