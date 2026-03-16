@@ -26,5 +26,7 @@ yarn-error.log
 .codegpt
 
 # Environment files
-.env*
+.env
 .env.local
+.env.*
+!.env.example
