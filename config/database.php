@@ -43,7 +43,7 @@ return [
         ],
 
         'bk_api_db' => [
-            'driver' => env('BK_API_DB_DRIVER', 'pgsql'),
+            'driver' => env('BK_API_DB_DRIVER', env('DB_CONNECTION', 'pgsql')),
             'url' => env('DATABASE_URL'),
             'host' => env('BK_HOST', env('DB_HOST', '127.0.0.1')),
             'port' => env('BK_PORT', env('DB_PORT', '5432')),
@@ -58,7 +58,7 @@ return [
         ],
 
         'bk_db' => [
-            'driver' => env('BK_DB_DRIVER', 'pgsql'),
+            'driver' => env('BK_DB_DRIVER', env('DB_CONNECTION', 'pgsql')),
             'url' => env('DATABASE_URL'),
             'host' => env('BK_HOST', env('DB_HOST', '127.0.0.1')),
             'port' => env('BK_PORT', env('DB_PORT', '5432')),
