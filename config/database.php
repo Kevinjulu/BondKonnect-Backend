@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'sqlite'),
+    'default' => env('DB_CONNECTION', 'pgsql'),
 
     /*
     |--------------------------------------------------------------------------
@@ -45,11 +45,11 @@ return [
         'bk_api_db' => [
             'driver' => env('BK_API_DB_DRIVER', env('DB_CONNECTION', 'pgsql')),
             'url' => env('DATABASE_URL'),
-            'host' => env('BK_HOST', env('DB_HOST', '127.0.0.1')),
-            'port' => env('BK_PORT', env('DB_PORT', '5432')),
-            'database' => env('BK_DATABASE', env('DB_DATABASE', 'laravel')),
-            'username' => env('BK_USERNAME', env('DB_USERNAME', 'root')),
-            'password' => env('BK_PASSWORD', env('DB_PASSWORD', '')),
+            'host' => env('BK_HOST', env('DB_HOST', env('PGHOST', '127.0.0.1'))),
+            'port' => env('BK_PORT', env('DB_PORT', env('PGPORT', '5432'))),
+            'database' => env('BK_DATABASE', env('DB_DATABASE', env('PGDATABASE', 'laravel'))),
+            'username' => env('BK_USERNAME', env('DB_USERNAME', env('PGUSER', 'root'))),
+            'password' => env('BK_PASSWORD', env('DB_PASSWORD', env('PGPASSWORD', ''))),
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
@@ -60,11 +60,11 @@ return [
         'bk_db' => [
             'driver' => env('BK_DB_DRIVER', env('DB_CONNECTION', 'pgsql')),
             'url' => env('DATABASE_URL'),
-            'host' => env('BK_HOST', env('DB_HOST', '127.0.0.1')),
-            'port' => env('BK_PORT', env('DB_PORT', '5432')),
-            'database' => env('BK_DATABASE', env('DB_DATABASE', 'laravel')),
-            'username' => env('BK_USERNAME', env('DB_USERNAME', 'root')),
-            'password' => env('BK_PASSWORD', env('DB_PASSWORD', '')),
+            'host' => env('BK_HOST', env('DB_HOST', env('PGHOST', '127.0.0.1'))),
+            'port' => env('BK_PORT', env('DB_PORT', env('PGPORT', '5432'))),
+            'database' => env('BK_DATABASE', env('DB_DATABASE', env('PGDATABASE', 'laravel'))),
+            'username' => env('BK_USERNAME', env('DB_USERNAME', env('PGUSER', 'root'))),
+            'password' => env('BK_PASSWORD', env('DB_PASSWORD', env('PGPASSWORD', ''))),
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
@@ -75,11 +75,11 @@ return [
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DATABASE_URL'),
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '5432'),
-            'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
+            'host' => env('DB_HOST', env('PGHOST', '127.0.0.1')),
+            'port' => env('DB_PORT', env('PGPORT', '5432')),
+            'database' => env('DB_DATABASE', env('PGDATABASE', 'laravel')),
+            'username' => env('DB_USERNAME', env('PGUSER', 'root')),
+            'password' => env('DB_PASSWORD', env('PGPASSWORD', '')),
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
