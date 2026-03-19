@@ -22,6 +22,9 @@ RUN apk add --no-cache \
     libzip-dev \
     oniguruma-dev
 
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
+
 # Install PHP extensions
 RUN install-php-extensions \
     pcntl \
