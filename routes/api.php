@@ -76,6 +76,8 @@ Route::group(
         Route::post('user-login', [AuthController::class, 'loginUser']);
         Route::post('verify-otp', [AuthController::class, 'otpVerification']);
         Route::post('user-reset-password', [AuthController::class, 'resetPassword']);
+        // Legacy frontend compatibility path.
+        Route::post('forgot-password', [AuthController::class, 'resetPassword']);
         Route::post('resend-otp', [AuthController::class, 'otpResend']);
         Route::post('user-logout', [AuthController::class, 'logoutUser']);
         Route::post('delegate-user-leave', [AuthController::class, 'delegateUserLeave']);

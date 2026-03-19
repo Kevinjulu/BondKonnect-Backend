@@ -26,7 +26,9 @@ return [
     */
     'allowed_origins' => env('CORS_ALLOWED_ORIGIN') ? [env('CORS_ALLOWED_ORIGIN')] : ['*'],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '/^https:\/\/.*\.railway\.app$/',
+    ],
 
     'allowed_headers' => ['*'],
 

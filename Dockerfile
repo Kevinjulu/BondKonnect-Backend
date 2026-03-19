@@ -1,12 +1,14 @@
-FROM php:8.3-cli-alpine
+# Multi-stage Dockerfile for BondKonnect Backend (FrankenPHP)
+
+# Build Stage: Composer and NPM
+FROM dunglas/frankenphp:1.4-php8.3-alpine AS build
 
 # Set environment variables
-ENV APP_ENV=production
-ENV APP_DEBUG=false
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
 # Install system dependencies
 RUN apk add --no-cache \
+    bash \
     git \
     curl \
     libpng-dev \
@@ -21,11 +23,15 @@ RUN apk add --no-cache \
     oniguruma-dev
 
 # Install PHP extensions
-RUN docker-php-ext-configure intl && \
-    docker-php-ext-install pdo_pgsql gd bcmath intl zip mbstring
-
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+RUN install-php-extensions \
+    pcntl \
+    gd \
+    bcmath \
+    intl \
+    zip \
+    opcache \
+    pdo_pgsql \
+    redis
 
 # Set working directory
 WORKDIR /app
@@ -33,18 +39,49 @@ WORKDIR /app
 # Copy application code
 COPY . /app
 
-# Create necessary directories and set permissions
-RUN mkdir -p /app/storage/logs /app/storage/framework/sessions /app/storage/framework/views /app/storage/framework/cache /app/bootstrap/cache && \
-    chmod -R 775 /app/storage /app/bootstrap/cache && \
-    chown -R www-data:www-data /app
-
-# Install PHP and Node dependencies (no scripts to avoid DB connection during build)
-RUN composer install --no-dev --optimize-autoloader --no-scripts
+# Install dependencies (no scripts to avoid DB connection during build)
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 RUN npm install && npm run build
+
+# Production Stage: Final Image
+FROM dunglas/frankenphp:1.4-php8.3-alpine AS production
+
+# Install essential runtime tools
+RUN apk add --no-cache bash
+
+# Install production PHP extensions
+RUN install-php-extensions \
+    pcntl \
+    gd \
+    bcmath \
+    intl \
+    zip \
+    opcache \
+    pdo_pgsql \
+    redis
+
+# Set working directory
+WORKDIR /app
+
+# Copy built application from build stage
+COPY --from=build /app /app
+
+# Configure FrankenPHP
+ENV SERVER_NAME=:10000
+ENV PORT=10000
+
+# Copy entrypoint script
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Set correct permissions
+RUN chown -R www-data:www-data /app
 
 # Expose port
 EXPOSE 10000
 
-# Final Start Command: Run migrations and seed for Railway initialization
-CMD php artisan migrate --force --seed && \
-    php artisan serve --host 0.0.0.0 --port ${PORT:-10000}
+# Entrypoint for the application
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+# Start FrankenPHP server
+CMD ["frankenphp", "php-server", "--root", "public/"]
