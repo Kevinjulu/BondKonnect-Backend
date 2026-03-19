@@ -70,8 +70,8 @@ COPY --from=build /app /app
 ENV SERVER_NAME=:10000
 ENV PORT=10000
 
-# Copy entrypoint script
-COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+# Copy entrypoint script from the already copied application code
+RUN cp /app/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Set correct permissions
