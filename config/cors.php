@@ -24,7 +24,10 @@ return [
     | https://your-frontend.vercel.app). For convenience during development we
     | fall back to allowing all origins when the env is unset.
     */
-    'allowed_origins' => env('CORS_ALLOWED_ORIGIN') ? [env('CORS_ALLOWED_ORIGIN')] : ['*'],
+    'allowed_origins' => [
+        env('CORS_ALLOWED_ORIGIN', 'https://bondkonnect.up.railway.app'),
+        'https://bondkonnect.up.railway.app'
+    ],
 
     'allowed_origins_patterns' => [
         '/^https:\/\/.*\.railway\.app$/',
