@@ -21,9 +21,9 @@ use App\Http\Controllers\V1\PrimaryMarketController;
 
 use App\Http\Controllers\V1\Ratings\RatingsController;
 
-// Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
-//     return $request->user();
-// });
+Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
+    return $request->user();
+});
 Route::get('/', function () {
     return ['Laravel' => app()->version()];
 });

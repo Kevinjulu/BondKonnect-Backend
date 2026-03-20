@@ -8,6 +8,7 @@ use App\Mail\OtpMail;
 use Illuminate\Http\Request;
 use HRTime\PerformanceCounter;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -1002,6 +1003,12 @@ class AuthController extends Controller
 
                     $this->bk_db->commit();
 
+                    // Log the user in for Sanctum session support
+                    $user = User::find($portalUser->Id);
+                    if ($user) {
+                        Auth::login($user);
+                    }
+
                     return response()->json([
                         'success' => true,
                         'message' => 'Login Successful (Dev Bypass)',
@@ -1148,6 +1155,12 @@ class AuthController extends Controller
                 'UserAgent' => $request->header('User-Agent'),
                 'ExpiresAt' => Carbon::now()->addDay(),
             ]);
+
+            // Log the user in for Sanctum session support
+            $user = User::find($portalUser->Id);
+            if ($user) {
+                Auth::login($user);
+            }
 
             // commit transaction
             $this->bk_db->commit();

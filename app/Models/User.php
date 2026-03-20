@@ -12,17 +12,21 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    protected $table = 'portaluserlogoninfo';
+    protected $primaryKey = 'Id';
+
     /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'otp',
-        'otp_expires_at'
+        'FirstName',
+        'OtherNames',
+        'Email',
+        'PhoneNumber',
+        'IsActive',
+        'AccountId'
     ];
 
     /**
