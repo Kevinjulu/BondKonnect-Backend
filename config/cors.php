@@ -25,8 +25,10 @@ return [
     | fall back to allowing all origins when the env is unset.
     */
     'allowed_origins' => [
-        env('CORS_ALLOWED_ORIGIN', 'https://bondkonnect.up.railway.app'),
-        'https://bondkonnect.up.railway.app'
+        env('CORS_ALLOWED_ORIGIN', '*'),
+        'https://bondkonnect.up.railway.app',
+        'http://localhost:4000',
+        'http://127.0.0.1:4000',
     ],
 
     'allowed_origins_patterns' => [
