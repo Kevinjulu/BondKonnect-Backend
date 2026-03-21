@@ -4,11 +4,14 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Laravel CORS Options
+    | Cross-Origin Resource Sharing (CORS) Configuration
     |--------------------------------------------------------------------------
     |
-    | The allowed_origins, allowed_headers and allowed_methods options are
-    | set to accept all by default. You can adjust these settings as needed.
+    | Here you may configure your settings for cross-origin resource sharing
+    | or "CORS". This determines what cross-origin operations may execute
+    | in web browsers. You are free to adjust these settings as needed.
+    |
+    | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
     |
     */
 
@@ -18,17 +21,14 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Environment-driven allowed origins
+    | Professional Production Approach
     |--------------------------------------------------------------------------
-    | In production, set CORS_ALLOWED_ORIGIN to your frontend's URL (e.g.
-    | https://your-frontend.vercel.app). For convenience during development we
-    | fall back to allowing all origins when the env is unset.
+    | We use CORS_ALLOWED_ORIGINS to dynamically control access.
+    | No domains are hardcoded here to ensure security and flexibility.
     */
-    'allowed_origins' => env('CORS_ALLOWED_ORIGIN') ? [env('CORS_ALLOWED_ORIGIN')] : ['*'],
+    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5173,http://localhost:4000,https://bondkonnect.up.railway.app')),
 
-    'allowed_origins_patterns' => [
-        '/^https:\/\/.*\.railway\.app$/',
-    ],
+    'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
 
@@ -36,6 +36,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => env('CORS_SUPPORTS_CREDENTIALS', false),
+    'supports_credentials' => true,
 
 ];
