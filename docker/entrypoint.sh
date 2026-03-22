@@ -26,16 +26,14 @@ if [ -z "$APP_URL" ] && [ -n "$RAILWAY_PUBLIC_DOMAIN" ]; then
     export APP_URL="https://$RAILWAY_PUBLIC_DOMAIN"
 fi
 
-# Run migrations if in production
-if [ "$APP_ENV" = "production" ] || [ "$APP_ENV" = "uat" ]; then
-    echo "Running migrations..."
-    php artisan migrate --force
-    
-    # Run seeders only if explicitly requested via RUN_SEEDER env var
-    if [ "$RUN_SEEDER" = "true" ]; then
-        echo "Running seeders..."
-        php artisan db:seed --force
-    fi
+# Run migrations unconditionally to ensure tables exist in Railway
+echo "Checking database connection and running migrations..."
+php artisan migrate --force
+
+# Run seeders only if explicitly requested via RUN_SEEDER env var
+if [ "$RUN_SEEDER" = "true" ]; then
+    echo "Running seeders..."
+    php artisan db:seed --force
 fi
 
 # Link storage
