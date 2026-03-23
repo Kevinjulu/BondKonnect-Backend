@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+echo "=== DEBUG: PORT=$PORT, SERVER_NAME=$SERVER_NAME ==="
+
 # Wait for database if needed (optional, Railway handles this well)
 # sleep 5
 
