@@ -44,9 +44,9 @@ php artisan route:cache
 php artisan view:cache
 php artisan event:cache
 
-# Set SERVER_NAME dynamically from Railway's PORT variable
-export SERVER_NAME=":${PORT:-8080}"
-echo "Starting FrankenPHP on port ${PORT:-8080}..."
+# Resolve PORT - Railway injects this dynamically
+LISTEN_PORT="${PORT:-8080}"
+echo "Starting FrankenPHP on port $LISTEN_PORT..."
 
-# Start FrankenPHP directly — do not use exec "$@"
-exec frankenphp php-server --root /app/public/
+# Start FrankenPHP with explicit listen flag
+exec frankenphp php-server --root /app/public/ --listen ":$LISTEN_PORT"
