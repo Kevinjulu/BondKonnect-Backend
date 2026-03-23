@@ -50,5 +50,8 @@ php artisan event:cache
 LISTEN_PORT="${PORT:-8080}"
 echo "Starting FrankenPHP on port $LISTEN_PORT..."
 
-# Start FrankenPHP with explicit listen flag
-exec frankenphp php-server --root /app/public/ --listen ":$LISTEN_PORT"
+# Set SERVER_NAME to ensure FrankenPHP listens on the correct port
+export SERVER_NAME=":$LISTEN_PORT"
+
+# Start FrankenPHP
+exec frankenphp php-server --root /app/public/
