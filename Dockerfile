@@ -70,8 +70,8 @@ WORKDIR /app
 COPY --from=build /app /app
 
 # Configure FrankenPHP
-ENV SERVER_NAME=:10000
-ENV PORT=10000
+ENV SERVER_NAME=:8080
+ENV PORT=8080
 
 # Copy entrypoint script from the already copied application code
 RUN cp /app/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -81,7 +81,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 RUN chown -R www-data:www-data /app
 
 # Expose port
-EXPOSE 10000
+EXPOSE 8080
 
 # Entrypoint for the application
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

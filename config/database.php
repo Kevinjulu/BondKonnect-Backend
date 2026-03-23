@@ -44,7 +44,7 @@ return [
 
         'bk_api_db' => [
             'driver' => 'pgsql',
-            'url' => env('DATABASE_URL'),
+            'url' => str_replace('postgresql://', 'pgsql://', env('DATABASE_URL') ?: env('DB_URL')),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
             'database' => env('DB_DATABASE', 'laravel'),
@@ -59,7 +59,7 @@ return [
 
         'bk_db' => [
             'driver' => 'pgsql',
-            'url' => env('DATABASE_URL'),
+            'url' => str_replace('postgresql://', 'pgsql://', env('DATABASE_URL') ?: env('DB_URL')),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
             'database' => env('DB_DATABASE', 'laravel'),
@@ -74,7 +74,7 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => env('DATABASE_URL'),
+            'url' => str_replace('postgresql://', 'pgsql://', env('DATABASE_URL') ?: env('DB_URL')),
             'host' => env('PGHOST', env('DB_HOST', '127.0.0.1')),
             'port' => env('PGPORT', env('DB_PORT', '5432')),
             'database' => env('PGDATABASE', env('DB_DATABASE', 'laravel')),

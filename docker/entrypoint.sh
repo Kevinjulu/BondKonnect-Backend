@@ -13,11 +13,9 @@ chown -R www-data:www-data storage bootstrap/cache
 # Ensure APP_KEY is set
 if [ -z "$APP_KEY" ]; then
     echo "APP_KEY is not set. Generating one..."
-    # We use a temporary env file to generate the key without a .env existing
-    touch .env
-    php artisan key:generate --force
-    export APP_KEY=$(grep APP_KEY .env | cut -d= -f2)
-    rm .env
+    # Generate and capture key without modifying any file
+    GEN_KEY=$(php artisan key:generate --show --no-interaction)
+    export APP_KEY="$GEN_KEY"
 fi
 
 # Auto-configure APP_URL from Railway domain if not set
@@ -27,7 +25,7 @@ if [ -z "$APP_URL" ] && [ -n "$RAILWAY_PUBLIC_DOMAIN" ]; then
 fi
 
 # Run migrations unconditionally to ensure tables exist in Railway
-echo "Checking database connection and running migrations..."
+echo "Checking database connection to ${DB_HOST:-$PGHOST} and running migrations..."
 php artisan migrate --force
 
 # Run seeders only if explicitly requested via RUN_SEEDER env var
