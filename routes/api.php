@@ -54,6 +54,10 @@ Route::group(
 );
 
 // Health check for Deployment monitors
+Route::get('/ping', function () {
+    return response()->json(['status' => 'pong', 'timestamp' => now()->toIso8601String()]);
+});
+
 Route::get('/health', function () {
     $requestId = (string) \Illuminate\Support\Str::uuid();
     $timestamp = now()->toIso8601String();
