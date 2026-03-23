@@ -48,5 +48,5 @@ php artisan event:cache
 export SERVER_NAME=":${PORT:-8080}"
 echo "Starting FrankenPHP on port ${PORT:-8080}..."
 
-# Execute the main command (e.g., FrankenPHP server)
-exec "$@"
+# Start FrankenPHP directly — do not use exec "$@"
+exec frankenphp php-server --root /app/public/

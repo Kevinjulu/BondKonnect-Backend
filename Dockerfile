@@ -82,5 +82,5 @@ RUN chown -R www-data:www-data /app
 # Entrypoint for the application
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
-# Start FrankenPHP server
-CMD ["sh", "-c", "frankenphp php-server --root /app/public/"]
+# Start FrankenPHP via the entrypoint
+CMD ["/usr/local/bin/entrypoint.sh"]
