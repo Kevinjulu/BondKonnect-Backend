@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -55,7 +55,12 @@ Route::group(
 
 // Health check for Deployment monitors
 Route::get('/health', function () {
+    $requestId = (string) \Illuminate\Support\Str::uuid();
+    $timestamp = now()->toIso8601String();
+    
     $diagnostics = [
+        'request_id' => $requestId,
+        'timestamp' => $timestamp,
         'status' => 'unknown',
         'database' => 'checking',
         'connection' => config('database.default'),
@@ -66,11 +71,24 @@ Route::get('/health', function () {
         \Illuminate\Support\Facades\DB::connection()->getPdo();
         $diagnostics['status'] = 'ok';
         $diagnostics['database'] = 'connected';
+        
+        \Illuminate\Support\Facades\Log::info("Health check passed", [
+            'request_id' => $requestId,
+            'status' => 'ok'
+        ]);
+        
         return response()->json($diagnostics, 200);
     } catch (\Exception $e) {
         $diagnostics['status'] = 'error';
         $diagnostics['database'] = 'disconnected';
         $diagnostics['message'] = $e->getMessage();
+        
+        \Illuminate\Support\Facades\Log::error("Health check failed", [
+            'request_id' => $requestId,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
         return response()->json($diagnostics, 500);
     }
 });

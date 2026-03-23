@@ -114,37 +114,103 @@ class BondMathService
     }
 
     /**
-     * Calculate financial values (Commissions, Levies, etc.)
+     * Format the indicative range for a bond.
      */
-    public function calculateFinancialValues(float $faceValue, float $dirtyPrice, string $bondIssueNo, array $rates): array
+    public function formatIndicativeRange(?float $spotYTM, ?float $spread): string
     {
-        $consideration = ($faceValue * $dirtyPrice) / 100;
-        
-        // NSE Commission
-        $commissionNSE = $consideration * ($rates['nseCommission'] ?? 0.0008);
-        $minCommission = $rates['nseMinCommission'] ?? 75.0;
-        if ($commissionNSE < $minCommission) {
-            $commissionNSE = $minCommission;
+        if ($spotYTM === null || $spread === null) {
+            return "N/A";
         }
-        
-        // CMA Levies
-        $otherLevies = $consideration * ($rates['cmaLevies'] ?? 0.0002);
-        
-        // Tax (Simplified: IFB is tax-free)
-        $isTaxFree = str_starts_with(strtoupper($bondIssueNo), 'IFB');
-        $withholdingTax = 0; // Usually handled at coupon payment, but for trade it might be relevant for some contexts
 
-        $totalPayable = $consideration + $commissionNSE + $otherLevies;
-        $totalReceivable = $consideration - $commissionNSE - $otherLevies;
+        $lowerBound = max(0, round(($spotYTM - $spread) * 100, 2));
+        $upperBound = round(($spotYTM + $spread) * 100, 2);
 
+        return number_format($lowerBound, 2) . '% - ' . number_format($upperBound, 2) . '%';
+    }
+
+    /**
+     * Calculate the rate outlook based on YTM TR and Inflation.
+     */
+    public function calculateRateOutlook(float $ytmTr, float $inflation): float
+    {
+        return $ytmTr > $inflation ? ceil($ytmTr / 0.0025) * 0.0025 : $inflation;
+    }
+
+    /**
+     * Calculate transaction adjustments for partial fills or over-fills.
+     * Returns the adjusted amounts and any remaining balance for a new quote.
+     */
+    public function calculateTransactionAdjustments(
+        bool $isBidQuote, 
+        float $quoteBidAmount, 
+        float $quoteOfferAmount, 
+        float $requestedBidAmount, 
+        float $requestedOfferAmount
+    ): array {
+        $result = [
+            'finalBidAmount' => $requestedBidAmount,
+            'finalOfferAmount' => $requestedOfferAmount,
+            'additionalAmount' => 0,
+            'requiresNewQuote' => false
+        ];
+
+        if ($isBidQuote) {
+            // Original quote was a BID. Someone is OFFERING to it.
+            if ($requestedOfferAmount > $quoteBidAmount) {
+                $result['finalOfferAmount'] = $quoteBidAmount;
+                $result['finalBidAmount'] = $requestedOfferAmount; // The full requested amount for the txn record
+                $result['additionalAmount'] = $requestedOfferAmount - $quoteBidAmount;
+                $result['requiresNewQuote'] = true;
+            }
+        } else {
+            // Original quote was an OFFER. Someone is BIDDING to it.
+            if ($requestedBidAmount > $quoteOfferAmount) {
+                $result['finalBidAmount'] = $quoteOfferAmount;
+                $result['finalOfferAmount'] = $requestedBidAmount; // The full requested amount for the txn record
+                $result['additionalAmount'] = $requestedBidAmount - $quoteOfferAmount;
+                $result['requiresNewQuote'] = true;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Map bond data to a standard portfolio snapshot structure.
+     */
+    public function mapBondToPortfolioSnapshot(object $bond, array $params, int $userId): array
+    {
         return [
-            'consideration' => round($consideration, 2),
-            'commissionNSE' => round($commissionNSE, 2),
-            'otherLevies' => round($otherLevies, 2),
-            'withholdingTax' => round($withholdingTax, 2),
-            'totalPayable' => round($totalPayable, 2),
-            'totalReceivable' => round($totalReceivable, 2),
-            'isTaxFree' => $isTaxFree
+            'PortfolioId' => $params['portfolio_id'],
+            'BondId' => $bond->Id,
+            'User' => $userId,
+            'Type' => $params['type'],
+            'BuyingDate' => $params['buying_date'],
+            'SellingDate' => $params['selling_date'] ?? null,
+            'BuyingPrice' => $params['buying_price'],
+            'SellingPrice' => $params['selling_price'] ?? null,
+            'BuyingWAP' => $params['buying_wap'],
+            'SellingWAP' => $params['selling_wap'] ?? null,
+            'FaceValueBuys' => $params['face_value_buys'],
+            'FaceValueSales' => $params['face_value_sales'] ?? 0,
+            'FaceValueBAL' => $params['face_value_bal'],
+            'ClosingPrice' => $params['closing_price'],
+            'CouponNET' => $params['coupon_net'],
+            'NextCpnDays' => $params['next_cpn_days'],
+            'RealizedPNL' => $params['realized_pnl'],
+            'UnrealizedPNL' => $params['unrealized_pnl'],
+            'OneYrTotalReturn' => $params['one_yr_total_return'],
+            'PortfolioValue' => $params['portfolio_value'],
+            'IsActive' => true,
+            'SpotYTM' => $bond->SpotYield ?? 0,
+            'Coupon' => $bond->Coupon ?? 0,
+            'Duration' => $bond->Duration ?? 0,
+            'MDuration' => $bond->MDuration ?? 0,
+            'Dv01' => $bond->Dv01 ?? 0,
+            'ExpectedShortfall' => $bond->ExpectedShortfall ?? 0,
+            'DirtyPrice' => $bond->DirtyPrice ?? 0,
+            'created_by' => $userId,
+            'created_on' => now()
         ];
     }
 }
