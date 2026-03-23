@@ -55,11 +55,23 @@ Route::group(
 
 // Health check for Deployment monitors
 Route::get('/health', function () {
+    $diagnostics = [
+        'status' => 'unknown',
+        'database' => 'checking',
+        'connection' => config('database.default'),
+        'host' => config('database.connections.' . config('database.default') . '.host'),
+    ];
+
     try {
         \Illuminate\Support\Facades\DB::connection()->getPdo();
-        return response()->json(['status' => 'ok', 'database' => 'connected'], 200);
+        $diagnostics['status'] = 'ok';
+        $diagnostics['database'] = 'connected';
+        return response()->json($diagnostics, 200);
     } catch (\Exception $e) {
-        return response()->json(['status' => 'error', 'database' => 'disconnected', 'message' => $e->getMessage()], 500);
+        $diagnostics['status'] = 'error';
+        $diagnostics['database'] = 'disconnected';
+        $diagnostics['message'] = $e->getMessage();
+        return response()->json($diagnostics, 500);
     }
 });
 
