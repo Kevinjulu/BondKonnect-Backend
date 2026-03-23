@@ -69,9 +69,8 @@ WORKDIR /app
 # Copy built application from build stage
 COPY --from=build /app /app
 
-# Configure FrankenPHP
-ENV SERVER_NAME=:8080
-ENV PORT=8080
+# Configure FrankenPHP - Railway injects $PORT dynamically
+ENV SERVER_NAME=:${PORT:-8080}
 
 # Copy entrypoint script from the already copied application code
 RUN cp /app/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -80,11 +79,11 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 # Set correct permissions
 RUN chown -R www-data:www-data /app
 
-# Expose port
-EXPOSE 8080
+# Expose port dynamically
+EXPOSE ${PORT:-8080}
 
 # Entrypoint for the application
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
-# Start FrankenPHP server
-CMD ["frankenphp", "php-server", "--root", "public/"]
+# Start FrankenPHP with dynamic port
+CMD ["sh", "-c", "frankenphp php-server --root /app/public/ --listen :${PORT:-8080}"]
