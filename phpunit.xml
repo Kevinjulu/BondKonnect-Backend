@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="CACHE_DRIVER" value="array"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="BK_API_DB_DRIVER" value="sqlite"/>
+        <env name="BK_DB_DRIVER" value="sqlite"/>
+        <env name="APP_KEY" value="XG8P/L8p5P4W6hV/vJ8+x4rQ7W8xL8w="/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="DATABASE_URL" value=""/>
+        <env name="PGHOST" value=""/>
+        <env name="PGPORT" value=""/>
+        <env name="PGDATABASE" value=""/>
+        <env name="PGUSER" value=""/>
+        <env name="PGPASSWORD" value=""/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="file"/>
+        <env name="SESSION_STORE" value="file"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="CORS_ALLOWED_ORIGINS" value="http://localhost:3000,http://localhost:5173,http://localhost:4000,https://bondkonnect.up.railway.app"/>
+    </php>
+</phpunit>
