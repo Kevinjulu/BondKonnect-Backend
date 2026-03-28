@@ -14,10 +14,18 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use App\Http\Controllers\V1\Defaults\StandardFunctions;
 use App\Http\Controllers\V1\Defaults\CommunicationManagement;
+use App\Services\BondMathService;
 use App\Http\Controllers\V1\Notifications\NotificationController;
 
 class BondsController extends Controller
 {
+    protected $bondMathService;
+
+    public function __construct(BondMathService $bondMathService)
+    {
+        parent::__construct();
+        $this->bondMathService = $bondMathService;
+    }
     public function uploadCsv(Request $request)
     {
         // Validate the request
@@ -136,7 +144,7 @@ class BondsController extends Controller
             $ytmTr = $tableParams->YtmTr;
             Log::info("inflation ".$inflation);
 
-            $rateOutlook = $ytmTr > $inflation ? ceil($ytmTr / 0.0025) * 0.0025 : $inflation;
+            $rateOutlook = $this->bondMathService->calculateRateOutlook($ytmTr, $inflation);
 
             $averageOTR = round($this->bk_db->table('statstable')->where('Otr', 'OTR')->avg('SpotYield') *100,4) ;
 
@@ -821,17 +829,11 @@ class BondsController extends Controller
     // Get bond details from statstable
     $bond = $this->bk_db->table('statstable')->where('Id', $bondId)->first();
 
-    if (!$bond || !isset($bond->spotYTM) || !isset($bond->Spread)) {
+    if (!$bond) {
         return "N/A";
     }
 
-    $spotYTM = floatval($bond->spotYTM);
-    $spread = floatval($bond->Spread);
-
-    $lowerBound = max(0, round(($spotYTM - $spread) * 100, 2));
-    $upperBound = round(($spotYTM + $spread) * 100, 2);
-
-    return number_format($lowerBound, 2) . '% - ' . number_format($upperBound, 2) . '%';
+    return $this->bondMathService->formatIndicativeRange($bond->spotYTM ?? null, $bond->Spread ?? null);
 }
 
     public function createQuote(Request $request)
@@ -1784,71 +1786,45 @@ class BondsController extends Controller
             $transactionNo = 'BL-TXN-' . strtoupper(substr(uniqid(), 0, 4)) . '-' . substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 4);
 
 
-            // select IsBid from quotebook where Id is $quote_id
-            $isBid = $this->bk_db->table('quotebook')
-                ->where('Id', $quote_id)
-                ->first();
-            Log::info("Here now");
+            // Calculate transaction adjustments using the service
+            $adjustments = $this->bondMathService->calculateTransactionAdjustments(
+                (bool)$quote->IsBid,
+                (float)$quote->BidAmount,
+                (float)$quote->OfferAmount,
+                (float)$bid_amount,
+                (float)$offer_amount
+            );
 
-            if($isBid->IsBid == 1 && $offer_amount > $bid_amount){
-                $newofferAmount = $bid_amount;
-                $newBidAmount = $offer_amount;
-            } elseif ($isBid->IsOffer == 1 && $bid_amount > $offer_amount) {
-                $newBidAmount = $offer_amount;
-                $newofferAmount = $bid_amount - $offer_amount;
+            $newBidAmount = $adjustments['finalBidAmount'];
+            $newofferAmount = $adjustments['finalOfferAmount'];
+
+            if ($adjustments['requiresNewQuote']) {
+                $additional_amount = $adjustments['additionalAmount'];
+                $placement_no = $stdfns->generatePlacementNumber();
+
+                // Determine new quote direction (flipped from original)
+                $isNewQuoteBid = !$quote->IsBid;
+                $isNewQuoteOffer = !$quote->IsOffer;
+
+                $this->bk_db->table('quotebook')->insertGetId([
+                    'BondIssueNo' => $quote->BondIssueNo,
+                    'PlacementNo' => $placement_no,
+                    'IsBid' => $isNewQuoteBid,
+                    'IsOffer' => $isNewQuoteOffer,
+                    'BidPrice' => $bid_price,
+                    'BidYield' => $bid_yield,
+                    'OfferPrice' => $offer_price,
+                    'OfferYield' => $offer_yield,
+                    'BidAmount' => $isNewQuoteBid ? $additional_amount : 0,
+                    'OfferAmount' => $isNewQuoteOffer ? $additional_amount : 0,
+                    'SettlementDate' => now()->addWeekdays(3),
+                    'AssignedBy' => $user->Id,
+                    'IsActive' => true,
+                    'ExitDate' => now()->addWeekdays(3),
+                    'created_on' => Carbon::now(),
+                    'created_by' => $user->Id,
+                ], 'Id');
             }
-
-//if isbid is 1 , then , check if offer_amount is > than bid amount ,  then create a new quote with additional amount i.e $offer_amount - $bid_amount, also if isoffer is 1 , then create a new quote with additional amount i.e $bid_amount - $offer_amount
-        if($isBid->IsBid == 1 && $offer_amount > $bid_amount){
-            $additional_amount = $offer_amount - $bid_amount;
-      //use the
-
-            // Create a new quote for the additional amount
-            $placement_no = $stdfns->generatePlacementNumber();
-
-            $newQuoteId = $this->bk_db->table('quotebook')->insertGetId([
-                'BondIssueNo' => $quote->BondIssueNo,
-                'PlacementNo' => $placement_no,
-                'IsBid' => false, // Since original was bid, new one should be offer
-                'IsOffer' => true,
-                'BidPrice' => $bid_price,
-                'BidYield' => $bid_yield,
-                'OfferPrice' => $offer_price,
-                'OfferYield' => $offer_yield,
-                'BidAmount' => false,
-                'OfferAmount' => $additional_amount,
-                'SettlementDate' => now()->addWeekdays(3),
-                'AssignedBy' => $user->Id,
-                'IsActive' => true,
-                'ExitDate' => now()->addWeekdays(3),
-                'created_on' => Carbon::now(),
-                'created_by' => $user->Id,
-                ], 'Id');
-        } elseif ($isBid->IsOffer == 1 && $bid_amount > $offer_amount) {
-            $additional_amount = $bid_amount - $offer_amount;
-
-            // Create a new quote for the additional amount
-            $placement_no = $stdfns->generatePlacementNumber();
-
-            $newQuoteId = $this->bk_db->table('quotebook')->insertGetId([
-                'BondIssueNo' => $quote->BondIssueNo,
-                'PlacementNo' => $placement_no,
-                'IsBid' => true, // Since original was offer, new one should be bid
-                'IsOffer' => false,
-                'BidPrice' => $bid_price,
-                'BidYield' => $bid_yield,
-                'OfferPrice' => $offer_price,
-                'OfferYield' => $offer_yield,
-                'BidAmount' => $additional_amount,
-                'OfferAmount' => $newofferAmount,
-                'SettlementDate' => now()->addWeekdays(3),
-                'AssignedBy' => $user->Id,
-                'IsActive' => true,
-                'ExitDate' => now()->addWeekdays(3),
-                'created_on' => Carbon::now(),
-                'created_by' => $user->Id,
-                ], 'Id');
-        }
 
 
                     // Create the transaction

@@ -213,8 +213,8 @@ class ActivityLogging extends Controller
                             ->where('User', $user_id)
                             ->first();
 
-            $role_id = $role->Role;
-            Log::info('Role selected');
+            $role_id = $role ? $role->Role : null;
+            Log::info('Role selection completed', ['role_id' => $role_id]);
         }
                     // Sanitize inputs
                     $action = $this->sanitizeInput($action);

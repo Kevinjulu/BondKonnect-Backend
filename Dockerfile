@@ -22,6 +22,9 @@ RUN apk add --no-cache \
     libzip-dev \
     oniguruma-dev
 
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
+
 # Install PHP extensions
 RUN install-php-extensions \
     pcntl \
@@ -66,22 +69,17 @@ WORKDIR /app
 # Copy built application from build stage
 COPY --from=build /app /app
 
-# Configure FrankenPHP
-ENV SERVER_NAME=:10000
-ENV PORT=10000
-
-# Copy entrypoint script
-COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+# Copy and prepare entrypoint
+RUN cp /app/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Set correct permissions
 RUN chown -R www-data:www-data /app
 
-# Expose port
-EXPOSE 10000
+# Expose default port
+EXPOSE 8080
 
-# Entrypoint for the application
+# Single entrypoint — no CMD args
+# SERVER_NAME is set inside entrypoint.sh from $PORT
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-
-# Start FrankenPHP server
-CMD ["frankenphp", "php-server", "--root", "public/"]
+CMD []

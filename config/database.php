@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'pgsql'),
+    'default' => (defined('PHPUNIT_COMPOSER_INSTALL') || defined('__PHPUNIT_PHAR__')) ? 'sqlite' : env('DB_CONNECTION', 'pgsql'),
 
     /*
     |--------------------------------------------------------------------------
@@ -34,47 +34,49 @@ return [
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),
-            'database' => env('DB_DATABASE', database_path('database.sqlite')),
+            'database' => (defined('PHPUNIT_COMPOSER_INSTALL') || defined('__PHPUNIT_PHAR__')) ? database_path('test.sqlite') : env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
-            'busy_timeout' => null,
-            'journal_mode' => null,
-            'synchronous' => null,
+            'busy_timeout' => 5000,
+            'journal_mode' => 'WAL',
+            'synchronous' => 'NORMAL',
         ],
 
         'bk_api_db' => [
-            'driver' => env('BK_API_DB_DRIVER', env('DB_CONNECTION', 'pgsql')),
-            'url' => env('DATABASE_URL'),
-            'host' => env('BK_HOST', env('PGHOST', env('DB_HOST', '127.0.0.1'))),
-            'port' => env('BK_PORT', env('PGPORT', env('DB_PORT', '5432'))),
-            'database' => env('BK_DATABASE', env('PGDATABASE', env('DB_DATABASE', 'laravel'))),
-            'username' => env('BK_USERNAME', env('PGUSER', env('DB_USERNAME', 'root'))),
-            'password' => env('BK_PASSWORD', env('PGPASSWORD', env('DB_PASSWORD', ''))),
+            'driver' => (defined('PHPUNIT_COMPOSER_INSTALL') || defined('__PHPUNIT_PHAR__')) ? 'sqlite' : env('BK_API_DB_DRIVER', env('DB_CONNECTION', 'pgsql')),
+            'url' => (defined('PHPUNIT_COMPOSER_INSTALL') || defined('__PHPUNIT_PHAR__')) ? null : ((env('BK_API_DB_DRIVER') === 'sqlite' || env('DB_CONNECTION') === 'sqlite') ? null : (env('DATABASE_URL') ? str_replace('postgresql://', 'pgsql://', env('DATABASE_URL')) : env('DB_URL'))),
+            'host' => env('PGHOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('PGPORT', env('DB_PORT', '5432')),
+            'database' => (defined('PHPUNIT_COMPOSER_INSTALL') || defined('__PHPUNIT_PHAR__')) ? database_path('test.sqlite') : env('PGDATABASE', env('DB_DATABASE', 'laravel')),
+            'username' => env('PGUSER', env('DB_USERNAME', 'root')),
+            'password' => env('PGPASSWORD', env('DB_PASSWORD', '')),
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => env('BK_API_DB_SSLMODE', 'require'),
+            'sslmode' => env('DB_SSLMODE', 'require'),
+            'options' => extension_loaded('pdo_pgsql') ? [PDO::ATTR_TIMEOUT => env('DB_TIMEOUT', 5)] : [],
         ],
 
         'bk_db' => [
-            'driver' => env('BK_DB_DRIVER', env('DB_CONNECTION', 'pgsql')),
-            'url' => env('DATABASE_URL'),
-            'host' => env('BK_HOST', env('DB_HOST', env('PGHOST', '127.0.0.1'))),
-            'port' => env('BK_PORT', env('DB_PORT', env('PGPORT', '5432'))),
-            'database' => env('BK_DATABASE', env('DB_DATABASE', env('PGDATABASE', 'laravel'))),
-            'username' => env('BK_USERNAME', env('DB_USERNAME', env('PGUSER', 'root'))),
-            'password' => env('BK_PASSWORD', env('DB_PASSWORD', env('PGPASSWORD', ''))),
+            'driver' => (defined('PHPUNIT_COMPOSER_INSTALL') || defined('__PHPUNIT_PHAR__')) ? 'sqlite' : env('BK_DB_DRIVER', env('DB_CONNECTION', 'pgsql')),
+            'url' => (defined('PHPUNIT_COMPOSER_INSTALL') || defined('__PHPUNIT_PHAR__')) ? null : ((env('BK_DB_DRIVER') === 'sqlite' || env('DB_CONNECTION') === 'sqlite') ? null : (env('DATABASE_URL') ? str_replace('postgresql://', 'pgsql://', env('DATABASE_URL')) : env('DB_URL'))),
+            'host' => env('PGHOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('PGPORT', env('DB_PORT', '5432')),
+            'database' => (defined('PHPUNIT_COMPOSER_INSTALL') || defined('__PHPUNIT_PHAR__')) ? database_path('test.sqlite') : env('PGDATABASE', env('DB_DATABASE', 'laravel')),
+            'username' => env('PGUSER', env('DB_USERNAME', 'root')),
+            'password' => env('PGPASSWORD', env('DB_PASSWORD', '')),
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => env('BK_DB_SSLMODE', 'require'),
+            'sslmode' => env('DB_SSLMODE', 'require'),
+            'options' => extension_loaded('pdo_pgsql') ? [PDO::ATTR_TIMEOUT => env('DB_TIMEOUT', 5)] : [],
         ],
 
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => env('DATABASE_URL'),
+            'url' => env('DATABASE_URL') ? str_replace('postgresql://', 'pgsql://', env('DATABASE_URL')) : env('DB_URL'),
             'host' => env('PGHOST', env('DB_HOST', '127.0.0.1')),
             'port' => env('PGPORT', env('DB_PORT', '5432')),
             'database' => env('PGDATABASE', env('DB_DATABASE', 'laravel')),
@@ -85,6 +87,7 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'require'),
+            'options' => extension_loaded('pdo_pgsql') ? [PDO::ATTR_TIMEOUT => env('DB_TIMEOUT', 5)] : [],
         ],
 
         'mysql' => [

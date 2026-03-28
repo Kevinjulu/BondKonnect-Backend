@@ -13,11 +13,14 @@ abstract class Controller
      */
     public function __get($name)
     {
+        $isTesting = defined('PHPUNIT_COMPOSER_INSTALL') || defined('__PHPUNIT_PHAR__') || (isset($_SERVER['APP_ENV']) && $_SERVER['APP_ENV'] === 'testing');
+        dump('isTesting in Controller: ' . ($isTesting ? 'true' : 'false'));
+
         if ($name === 'bk_api_db') {
-            return $this->bk_api_db = DB::connection('bk_api_db');
+            return $this->bk_api_db = $isTesting ? DB::connection() : DB::connection('bk_api_db');
         }
         if ($name === 'bk_db') {
-            return $this->bk_db = DB::connection('bk_db');
+            return $this->bk_db = $isTesting ? DB::connection() : DB::connection('bk_db');
         }
         
         // Handle other property access if needed, or return null

@@ -8,13 +8,14 @@
     "require": {
         "php": "^8.2",
         "ext-bcmath": "*",
-        "ext-gd": "*",
-        "ext-zip": "*",
-        "ext-mbstring": "*",
-        "ext-json": "*",
         "ext-ctype": "*",
+        "ext-gd": "*",
         "ext-iconv": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-zip": "*",
         "laravel/framework": "^11.31",
+        "laravel/horizon": "^5.45",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "league/csv": "^9.21",
@@ -68,7 +69,8 @@
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
         ],
         "post-install-cmd": [
-            "@php artisan vendor:publish --force || true"
+            "@php artisan vendor:publish --force --no-interaction || true",
+            "@php artisan horizon:terminate || true"
         ],
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
@@ -80,7 +82,7 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite"
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan horizon\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,horizon,logs,vite"
         ]
     },
     "extra": {

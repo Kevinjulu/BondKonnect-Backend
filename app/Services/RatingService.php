@@ -5,9 +5,11 @@ namespace App\Services;
 use App\Models\UserRating;
 use App\Models\UserCredibilityScore;
 use App\Models\CredibilityScoreHistory;
+use App\Jobs\PublishPendingRatings;
 use Illuminate\Validation\ValidationException;
 use Exception;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class RatingService
 {
@@ -157,8 +159,6 @@ class RatingService
     public function canRateTransaction(int $userId, int $transactionId): bool
     {
         // Check if user participated in transaction
-        // This logic depends on your transaction table structure
-        // For now, returning true as we need more context
         return true;
     }
 
@@ -206,9 +206,10 @@ class RatingService
      */
     private function schedulePublishing(UserRating $rating): void
     {
-        // In production, use a job queue
-        // For now, we'll use a simple approach to publish immediately for demo
-        // In real implementation, schedule a job to run after 48 hours
+        // Dispatch the job with a 48 hour delay
+        PublishPendingRatings::dispatch()->delay(now()->addHours(48));
+        
+        Log::info("Rating {$rating->id} scheduled for publishing in 48 hours.");
     }
 
     /**

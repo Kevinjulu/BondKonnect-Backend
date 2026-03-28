@@ -12,12 +12,18 @@ use App\Mail\SubscriptionsMail;
 use App\Mail\ForgotPasswordMail;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use App\Jobs\SendEmailJob;
 use App\Mail\VerifyIntermediaryMail;
 use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\v1\Defaults\StandardFunctions;
 
 class CommunicationManagement extends Controller
 {
+    // ... helper to dispatch jobs
+    private function dispatchEmailJob($email, $mailableClass, $data, $cc = [], $bcc = [])
+    {
+        SendEmailJob::dispatch($email, $mailableClass, $data, $cc, $bcc);
+    }
 
 
     public function composeMail($email, $firstName, $isOtp,  $isVerification,$isIntermediaryVerification, $isGeneral, $isForgot, $isPromo, $isSubscription, $generalSubject = null, $generalBody = null)
@@ -73,172 +79,86 @@ class CommunicationManagement extends Controller
                 ];
                 log::info("email details",$data);
 
-                // new mailer
-                Mail::to($email)
-                // ->html($email_body);
-                    ->send(new Verificationlink($data));
-
+                // Send background verification link
+                $this->dispatchEmailJob($email, \App\Mail\Verificationlink::class, $data);
             }
 
-                // Send intermediary verification email
+                // Send background intermediary verification email
             else if ($isIntermediaryVerification) {
-                $verification_result = $this->generate_intermediary_verification_link($email);
-
-                if ($verification_result['success'] == false) {
-                    return $verification_result;
-                }
-
-                Log::info(json_encode($verification_result));
-                $verification_link = $verification_result['data'];
-
-                // log::info(($name->FirstName));
-
-                $data = [
-                    "verification_link" => $verification_link,
-                    // "name" => $name,
-                    "email" => $email,
-                ];
-                log::info("intermediary email details",$data);
-
-                // new mailer
-                Mail::to($email)
-                // ->html($email_body);
-                    ->send(new VerifyIntermediaryMail($data));
-
-            }
-
-            // Send OTP email
-            else if ($isOtp) {
-                $otp = $this->generate_send_otp($email);
-
-                if ($otp['success'] == false) {
-                    return $otp;
-                }
-
-                $otp = $otp['data'];
-                Log::info('OTP: ' . $otp);
-
-                if($firstName){
-                    //means this is an Individual
-                    $name = $firstName;
-
-                }else{
-                    //processes brokers, authorized dealers, corporates, agents
-                    $name = $this->bk_db->table('portaluserlogoninfo')
-                    ->select('CompanyName')
-                    ->where('email', $email)
-                    ->first();
-                    $name = $name->CompanyName;
-                }
-
-                $data = [
-                    "name" => $name,
-                    "otp" => $otp,
-                    "email" => $email,
-                ];
-                Mail::to($email)->send(new OtpMail($data));
-
-
-            }
-
-            //Send Forgot Password email
-
-            else if ($isForgot) {
-
                 $verification_result = $this->generate_verification_link($email);
 
                 if ($verification_result['success'] == false) {
                     return $verification_result;
                 }
-
-                Log::info(json_encode($verification_result));
+                
                 $verification_link = $verification_result['data'];
-
-                if($firstName){
-                    //means this is an Individual
-                    $name = $firstName;
-
-                }else{
-                    //processes brokers, authorized dealers, corporates, agents
-                    $name = $this->bk_db->table('portaluserlogoninfo')
-                    ->select('CompanyName')
-                    ->where('email', $email)
-                    ->first();
-                    $name = $name->CompanyName;
-                }
-
                 $data = [
-                    "name" => $name,
                     "verification_link" => $verification_link,
                     "email" => $email,
                 ];
-                Mail::to($email)->send(new ForgotPasswordMail($data));
+                log::info("intermediary email details",$data);
 
-
+                $this->dispatchEmailJob($email, \App\Mail\VerifyIntermediaryMail::class, $data);
             }
 
-            // Send general email
-            else if ($isGeneral) {
-                if (!$generalSubject || !$generalBody) {
-                    return [
-                        'success' => false,
-                        'message' => 'General email requires subject and body',
-                        'data' => null,
-                    ];
-                }
+            // Send background OTP email
+            else if ($isOtp) {
+                $otp = $this->generate_send_otp($email);
+                if ($otp['success'] == false) return $otp;
+                $otp = $otp['data'];
 
-                //fetch name
                 if($firstName){
-                    //means this is an Individual
                     $name = $firstName;
-
                 }else{
-                    //processes brokers, authorized dealers, corporates, agents
-                    $name = $this->bk_db->table('portaluserlogoninfo')
-                    ->select('CompanyName')
-                    ->where('email', $email)
-                    ->first();
+                    $name = $this->bk_db->table('portaluserlogoninfo')->select('CompanyName')->where('email', $email)->first();
                     $name = $name->CompanyName;
                 }
 
-                if ($generalSubject && $generalBody && $isPromo) {
-                    //send promo email
+                $data = ["name" => $name, "otp" => $otp, "email" => $email];
+                $this->dispatchEmailJob($email, \App\Mail\OtpMail::class, $data);
+            }
 
-                    $data = [
-                        "name" => $name,
-                        "general_subject" => $generalSubject,
-                        "general_body" => $generalBody,
-                        // "verification_link" => $verification_link,
-                        "email" => $email,
-                    ];
-                    Mail::to($email)->send(new PromotionalMail($data));
-                }
-                else if ($generalSubject && $generalBody && $isSubscription) {
-                // send subscription email
+            //Send background Forgot Password email
+            else if ($isForgot) {
+                $verification_result = $this->generate_verification_link($email);
+                if ($verification_result['success'] == false) return $verification_result;
+                $verification_link = $verification_result['data'];
 
-                    $data = [
-                        "name" => $name,
-                        "general_subject" => $generalSubject,
-                        "general_body" => $generalBody,
-                        // "verification_link" => $verification_link,
-                        "email" => $email,
-                    ];
-                    Mail::to($email)->send(new SubscriptionsMail($data));
+                if($firstName){
+                    $name = $firstName;
+                }else{
+                    $name = $this->bk_db->table('portaluserlogoninfo')->select('CompanyName')->where('email', $email)->first();
+                    $name = $name->CompanyName;
                 }
 
+                $data = ["name" => $name, "verification_link" => $verification_link, "email" => $email];
+                $this->dispatchEmailJob($email, \App\Mail\ForgotPasswordMail::class, $data);
+            }
+
+            // Send background general email
+            else if ($isGeneral) {
+                if (!$generalSubject || !$generalBody) {
+                    return ['success' => false, 'message' => 'General email requires subject and body'];
+                }
+
+                if($firstName){
+                    $name = $firstName;
+                }else{
+                    $name = $this->bk_db->table('portaluserlogoninfo')->select('CompanyName')->where('email', $email)->first();
+                    $name = $name->CompanyName;
+                }
+
+                $data = ["name" => $name, "general_subject" => $generalSubject, "general_body" => $generalBody, "email" => $email];
+
+                if ($isPromo) {
+                    $this->dispatchEmailJob($email, \App\Mail\PromotionalMail::class, $data);
+                }
+                else if ($isSubscription) {
+                    $this->dispatchEmailJob($email, \App\Mail\SubscriptionsMail::class, $data);
+                }
                 else {
-                    // send pure general mail
-                    $data = [
-                        "name" => $name,
-                        "general_subject" => $generalSubject,
-                        "general_body" => $generalBody,
-                        // "verification_link" => $verification_link,
-                        "email" => $email,
-                    ];
-                    Mail::to($email)->send(new GeneralMail($data));
-
+                    $this->dispatchEmailJob($email, \App\Mail\GeneralMail::class, $data);
                 }
-
             }
             return [
                 'success' => true,
@@ -658,19 +578,23 @@ class CommunicationManagement extends Controller
                     ];
 
                     $mailClass = match($request->template_type) {
-                        'otp' => new OtpMail($data),
-                        'verification' => new Verificationlink($data),
-                        'intermediary' => new VerifyIntermediaryMail($data),
-                        'forgot' => new ForgotPasswordMail($data),
-                        'promotional' => new PromotionalMail($data),
-                        'subscription' => new SubscriptionsMail($data),
-                        default => new GeneralMail($data)
+                        'otp' => \App\Mail\OtpMail::class,
+                        'verification' => \App\Mail\Verificationlink::class,
+                        'intermediary' => \App\Mail\VerifyIntermediaryMail::class,
+                        'forgot' => \App\Mail\ForgotPasswordMail::class,
+                        'promotional' => \App\Mail\PromotionalMail::class,
+                        'subscription' => \App\Mail\SubscriptionsMail::class,
+                        default => \App\Mail\GeneralMail::class
                     };
 
-                    Mail::to($recipient)
-                        ->cc($request->cc ?? [])
-                        ->bcc($request->bcc ?? [])
-                        ->send($mailClass);
+                    // Dispatch to background queue
+                    $this->dispatchEmailJob(
+                        $recipient, 
+                        $mailClass, 
+                        $data, 
+                        $request->cc ?? [], 
+                        $request->bcc ?? []
+                    );
 
 
                 }

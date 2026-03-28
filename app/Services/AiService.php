@@ -16,7 +16,9 @@ class AiService
     public function __construct()
     {
         $this->apiKey = env('GEMINI_API_KEY');
-        $this->bk_db = DB::connection('bk_db');
+        // Use default connection in testing to avoid multi-connection sqlite issues
+        $isTesting = defined('PHPUNIT_COMPOSER_INSTALL') || defined('__PHPUNIT_PHAR__') || (isset($_SERVER['APP_ENV']) && $_SERVER['APP_ENV'] === 'testing');
+        $this->bk_db = $isTesting ? DB::connection() : DB::connection('bk_db');
     }
 
     /**
@@ -176,14 +178,15 @@ class AiService
             $email = $context['user_email'] ?? 'anonymous';
             
             $this->bk_db->table('activitylogs')->insert([
-                'NodeName' => 'AI_ASSISTANT',
+                'ActivityType' => 'AI_ASSISTANT',
+                'Action' => 'CHAT_INTERACTION',
                 'IpAddress' => request()->ip(),
                 'RequestMethod' => 'POST',
                 'RequestUrl' => '/V1/ai/chat',
                 'StatusCode' => '200',
-                'Response' => substr("Q: $prompt | A: $response", 0, 500),
+                'Description' => substr("Q: $prompt | A: $response", 0, 500),
                 'created_on' => now(),
-                'Email' => $email
+                // 'Email' column is missing from migration, using Description to include email context if needed
             ]);
         } catch (\Exception $e) {
             Log::warning('Failed to log AI interaction: ' . $e->getMessage());

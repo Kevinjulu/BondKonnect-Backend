@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -21,9 +21,9 @@ use App\Http\Controllers\V1\PrimaryMarketController;
 
 use App\Http\Controllers\V1\Ratings\RatingsController;
 
-// Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
-//     return $request->user();
-// });
+Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
+    return $request->user();
+});
 Route::get('/', function () {
     return ['Laravel' => app()->version()];
 });
@@ -54,13 +54,63 @@ Route::group(
 );
 
 // Health check for Deployment monitors
+Route::get('/ping', function () {
+    return response()->json(['status' => 'pong', 'timestamp' => now()->toIso8601String()]);
+});
+
 Route::get('/health', function () {
-    try {
-        \Illuminate\Support\Facades\DB::connection()->getPdo();
-        return response()->json(['status' => 'ok', 'database' => 'connected'], 200);
-    } catch (\Exception $e) {
-        return response()->json(['status' => 'error', 'database' => 'disconnected', 'message' => $e->getMessage()], 500);
+    $requestId = (string) \Illuminate\Support\Str::uuid();
+    $timestamp = now()->toIso8601String();
+    $defaultConnection = config('database.default');
+    $connectionsToCheck = array_unique([$defaultConnection, 'bk_db']);
+    
+    $diagnostics = [
+        'request_id' => $requestId,
+        'timestamp' => $timestamp,
+        'status' => 'unknown',
+        'connection' => $defaultConnection,
+        'host' => config('database.connections.' . $defaultConnection . '.host'),
+        'connections' => [],
+    ];
+
+    $failedConnections = [];
+
+    foreach ($connectionsToCheck as $connectionName) {
+        if (!config('database.connections.' . $connectionName)) {
+            $diagnostics['connections'][$connectionName] = 'missing';
+            $failedConnections[] = $connectionName;
+            continue;
+        }
+
+        try {
+            \Illuminate\Support\Facades\DB::connection($connectionName)->getPdo();
+            $diagnostics['connections'][$connectionName] = 'connected';
+        } catch (\Exception $e) {
+            $diagnostics['connections'][$connectionName] = 'disconnected';
+            $diagnostics['connections'][$connectionName . '_error'] = $e->getMessage();
+            $failedConnections[] = $connectionName;
+        }
     }
+
+    if (count($failedConnections) === 0) {
+        $diagnostics['status'] = 'ok';
+        \Illuminate\Support\Facades\Log::info("Health check passed", [
+            'request_id' => $requestId,
+            'status' => 'ok'
+        ]);
+
+        return response()->json($diagnostics, 200);
+    }
+
+    $diagnostics['status'] = 'error';
+    $diagnostics['message'] = 'One or more database connections failed.';
+
+    \Illuminate\Support\Facades\Log::error("Health check failed", [
+        'request_id' => $requestId,
+        'failed_connections' => $failedConnections,
+    ]);
+
+    return response()->json($diagnostics, 500);
 });
 
 //v1(Authentication)

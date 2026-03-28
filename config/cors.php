@@ -26,7 +26,7 @@ return [
     | We use CORS_ALLOWED_ORIGINS to dynamically control access.
     | No domains are hardcoded here to ensure security and flexibility.
     */
-    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5173,http://localhost:4000,https://bondkonnect.up.railway.app')),
+    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', env('CORS_ALLOWED_ORIGIN', 'http://localhost:3000,http://localhost:5173,http://localhost:4000,https://bondkonnect.up.railway.app'))),
 
     'allowed_origins_patterns' => [],
 

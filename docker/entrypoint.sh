@@ -1,21 +1,23 @@
 #!/bin/bash
 set -e
 
-echo "=== DEBUG: PORT=$PORT, SERVER_NAME=$SERVER_NAME ==="
-
-# Wait for database if needed (optional, Railway handles this well)
-# sleep 5
+# ============================================
+# CRITICAL: Export SERVER_NAME immediately
+# before anything else runs
+# ============================================
+LISTEN_PORT="${PORT:-8080}"
+export SERVER_NAME=":${LISTEN_PORT}"
+echo "=== SERVER_NAME set to ${SERVER_NAME} ==="
 
 # Ensure storage and cache directories exist and are writable
 mkdir -p storage/framework/{sessions,views,cache}
 mkdir -p bootstrap/cache
 chmod -R 775 storage bootstrap/cache
-chown -R www-data:www-data storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 
 # Ensure APP_KEY is set
 if [ -z "$APP_KEY" ]; then
     echo "APP_KEY is not set. Generating one..."
-    # Generate and capture key without modifying any file
     GEN_KEY=$(php artisan key:generate --show --no-interaction)
     export APP_KEY="$GEN_KEY"
 fi
@@ -26,18 +28,35 @@ if [ -z "$APP_URL" ] && [ -n "$RAILWAY_PUBLIC_DOMAIN" ]; then
     export APP_URL="https://$RAILWAY_PUBLIC_DOMAIN"
 fi
 
-# Run migrations unconditionally to ensure tables exist in Railway
-echo "Checking database connection to ${DB_HOST:-$PGHOST} and running migrations..."
+# ============================================
+# Database connection with retry logic
+# ============================================
+echo "Waiting for database..."
+MAX_RETRIES=30
+RETRY_COUNT=0
+
+until php artisan db:monitor --databases=pgsql 2>/dev/null || [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    echo "Database not ready, retrying ($RETRY_COUNT/$MAX_RETRIES)..."
+    sleep 2
+done
+
+if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+    echo "WARNING: Could not confirm database connection. Proceeding anyway..."
+fi
+
+# Run migrations
+echo "Running migrations..."
 php artisan migrate --force
 
-# Run seeders only if explicitly requested via RUN_SEEDER env var
+# Run seeders only if explicitly requested
 if [ "$RUN_SEEDER" = "true" ]; then
     echo "Running seeders..."
     php artisan db:seed --force
 fi
 
 # Link storage
-php artisan storage:link --force
+php artisan storage:link --force 2>/dev/null || true
 
 # Optimize Laravel for production
 echo "Optimizing Laravel for production..."
@@ -46,9 +65,28 @@ php artisan route:cache
 php artisan view:cache
 php artisan event:cache
 
-# Resolve PORT - Railway injects this dynamically
-LISTEN_PORT="${PORT:-8080}"
-echo "Starting FrankenPHP on port $LISTEN_PORT..."
+# ============================================
+# Start the correct process based on role
+# ============================================
+CONTAINER_ROLE="${CONTAINER_ROLE:-app}"
 
-# Start FrankenPHP with explicit listen flag
-exec frankenphp php-server --root /app/public/ --listen ":$LISTEN_PORT"
+if [ "$CONTAINER_ROLE" = "worker" ]; then
+    echo "Starting Queue Worker..."
+    exec php artisan queue:work \
+        --sleep=3 \
+        --tries=3 \
+        --timeout=90 \
+        --max-time=3600 \
+        --verbose
+
+elif [ "$CONTAINER_ROLE" = "scheduler" ]; then
+    echo "Starting Scheduler..."
+    while true; do
+        php artisan schedule:run --verbose --no-interaction &
+        sleep 60
+    done
+
+else
+    echo "Starting FrankenPHP on :${LISTEN_PORT}..."
+    exec frankenphp php-server --root /app/public/
+fi
