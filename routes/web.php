@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-// use App\Http\Controllers\Broadcasting\AuthController;
+use App\Http\Controllers\V1\Auth\BroadcastingAuthController;
 
 // Route::get('/', function () {
 //     return ['Laravel' => app()->version()];
@@ -23,4 +23,5 @@ Route::get('/health', function () {
 });
 
 // Broadcasting auth endpoint used by client-side Echo/Pusher
-// Route::post('/broadcasting/auth', [AuthController::class, 'authenticate'])->name('broadcasting.auth');
+Route::post('/broadcasting/auth', [BroadcastingAuthController::class, 'authenticate'])
+    ->name('broadcasting.auth');

@@ -18,8 +18,9 @@ class AiServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        // Since we already set up config in TestCase, we can just instantiate AiService
-        $this->aiService = new AiService();
+        // Instantiate AiService with its required BondMathService dependency.
+        $bondMathService = app(\App\Services\BondMathService::class);
+        $this->aiService = new AiService($bondMathService);
     }
 
     public function test_get_embedding_returns_values_on_success()
@@ -111,5 +112,26 @@ class AiServiceTest extends TestCase
 
         $this->assertFalse($response['success']);
         $this->assertStringContainsString('AI Service Error', $response['message']);
+    }
+
+    public function test_run_tool_calculates_bond_yield()
+    {
+        $result = $this->aiService->runTool('bond_yield', [
+            'dirty_price' => 101.5,
+            'coupon' => 16,
+            'coupons_due' => 8,
+            'next_coupon_days' => 90
+        ]);
+
+        $this->assertTrue($result['success']);
+        $this->assertStringContainsString('Calculated Yield to Maturity', $result['data']);
+    }
+
+    public function test_ask_uses_tool_for_ytm_prompt()
+    {
+        $response = $this->aiService->ask('Calculate the YTM for a bond with dirty price 101.5 and coupon 16% if the next coupon is in 90 days.');
+
+        $this->assertTrue($response['success']);
+        $this->assertStringContainsString('Calculated Yield to Maturity', $response['data']);
     }
 }

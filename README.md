@@ -76,6 +76,13 @@ MPESA_SHORTCODE=174379
 
 PUSHER_APP_ID=your-id
 PUSHER_APP_KEY=your-key
+
+MAIL_MAILER=resend
+RESEND_API_KEY=your-resend-api-key
+MAIL_FROM_ADDRESS_PROD=no-reply@bondkonnect.com
+MAIL_FROM_NAME_PROD=BondKonnect
+MAIL_FROM_ADDRESS=no-reply@bondkonnect.com
+MAIL_FROM_NAME=BondKonnect
 ```
 
 ### 4. Database & Seeding

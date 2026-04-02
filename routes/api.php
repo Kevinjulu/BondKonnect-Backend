@@ -383,6 +383,7 @@ Route::group(
     ],
     function () {
         Route::post('chat', [AiController::class, 'chat']);
+        Route::post('tool', [AiController::class, 'tool']);
     }
 );
 

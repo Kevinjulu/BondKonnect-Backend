@@ -48,4 +48,30 @@ class AiController extends Controller
 
         return response()->json($result, 500);
     }
+
+    public function tool(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'tool' => 'required|string|in:bond_yield,bond_price,bid_adjustment',
+            'parameters' => 'nullable|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid tool request parameters.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $tool = $request->input('tool');
+        $parameters = $request->input('parameters', []);
+        $result = $this->aiService->runTool($tool, $parameters);
+
+        if ($result['success']) {
+            return response()->json($result);
+        }
+
+        return response()->json($result, 500);
+    }
 }

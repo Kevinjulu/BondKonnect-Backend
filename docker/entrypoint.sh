@@ -88,5 +88,9 @@ elif [ "$CONTAINER_ROLE" = "scheduler" ]; then
 
 else
     echo "Starting FrankenPHP on :${LISTEN_PORT}..."
-    exec frankenphp php-server --root /app/public/
+    if [ "$#" -gt 0 ]; then
+        exec "$@"
+    else
+        exec frankenphp php-server --root /app/public/
+    fi
 fi

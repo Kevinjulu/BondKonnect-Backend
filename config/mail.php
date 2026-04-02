@@ -134,15 +134,15 @@ return [
     */
     'from' => [
         'address' => match (env('APP_ENV')) {
-            'production' => env('MAIL_FROM_ADDRESS_PROD'),
-            'uat' => env('MAIL_FROM_ADDRESS_UAT'),
-            'dev' => env('MAIL_FROM_ADDRESS'),
+            'production' => env('MAIL_FROM_ADDRESS_PROD', env('MAIL_FROM_ADDRESS', 'hello@example.com')),
+            'uat' => env('MAIL_FROM_ADDRESS_UAT', env('MAIL_FROM_ADDRESS', 'hello@example.com')),
+            'dev' => env('MAIL_FROM_ADDRESS_DEV', env('MAIL_FROM_ADDRESS', 'hello@example.com')),
             default => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
         },
         'name' => match (env('APP_ENV')) {
-            'production' => env('MAIL_FROM_NAME_PROD'),
-            'uat' => env('MAIL_FROM_NAME_UAT'),
-            'dev' => env('MAIL_FROM_NAME'),
+            'production' => env('MAIL_FROM_NAME_PROD', env('MAIL_FROM_NAME', 'Example')),
+            'uat' => env('MAIL_FROM_NAME_UAT', env('MAIL_FROM_NAME', 'Example')),
+            'dev' => env('MAIL_FROM_NAME_DEV', env('MAIL_FROM_NAME', 'Example')),
             default => env('MAIL_FROM_NAME', 'Example'),
         },
     ],
