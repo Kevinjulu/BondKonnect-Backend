@@ -35,4 +35,20 @@ return [
         ],
     ],
 
+    'mpesa' => [
+        'env' => env('MPESA_ENV', 'sandbox'),
+        'key' => env('MPESA_CONSUMER_KEY'),
+        'secret' => env('MPESA_CONSUMER_SECRET'),
+        'shortcode' => env('MPESA_SHORTCODE'),
+        'passkey' => env('MPESA_PASSKEY'),
+        'callback_url' => env('MPESA_CALLBACK_URL'),
+    ],
+
+    'paypal' => [
+        'mode' => env('PAYPAL_MODE', 'sandbox'),
+        'client_id' => env('PAYPAL_CLIENT_ID'),
+        'client_secret' => env('PAYPAL_CLIENT_SECRET'),
+        'webhook_id' => env('PAYPAL_WEBHOOK_ID'),
+    ],
+
 ];

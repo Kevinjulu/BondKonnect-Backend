@@ -26,6 +26,13 @@ class RatingService
             throw new Exception('Users cannot rate themselves');
         }
 
+        // Validate transaction eligibility if transaction_id is provided
+        if (isset($data['transaction_id'])) {
+            if (!$this->canRateTransaction($data['rater_id'], $data['transaction_id'])) {
+                throw new Exception('You are not eligible to rate this transaction');
+            }
+        }
+
         // Check if rating for this transaction already exists
         if ($data['transaction_id'] ?? null) {
             $existing = UserRating::where('transaction_id', $data['transaction_id'])
@@ -158,8 +165,22 @@ class RatingService
      */
     public function canRateTransaction(int $userId, int $transactionId): bool
     {
-        // Check if user participated in transaction
-        return true;
+        // Check if transaction (quote) exists and was accepted
+        $quote = \Illuminate\Support\Facades\DB::connection('bk_db')
+            ->table('quotebook')
+            ->where('Id', $transactionId)
+            ->where('IsAccepted', true)
+            ->first();
+
+        if (!$quote) {
+            return false;
+        }
+
+        // Check if user was a party in this transaction
+        // Parties are: AssignedBy, ViewingParty, or created_by
+        return $quote->AssignedBy == $userId || 
+               $quote->ViewingParty == $userId || 
+               ($quote->created_by ?? null) == $userId;
     }
 
     /**

@@ -106,14 +106,30 @@ class CredibilityScoreService
     }
 
     /**
-     * Calculate verification score (0, 30, or 100)
+     * Calculate verification score (0, 30, 50, or 100)
      */
     private function updateVerificationScore(UserCredibilityScore $score): void
     {
-        // This would check against a verification/KYC status in the users table
-        // For now, default to 0 (unverified)
-        // Can be updated to 30 for email/ID verified, or 100 for full KYC
-        $score->verification_score = 0; // To be implemented with actual verification logic
+        $user = \App\Models\User::find($score->user_id);
+        
+        if (!$user) {
+            $score->verification_score = 0;
+            return;
+        }
+
+        $verificationScore = 0;
+
+        // Email verification (50 points)
+        if ($user->email_verified_at) {
+            $verificationScore += 50;
+        }
+
+        // Active account status (50 points)
+        if ($user->IsActive) {
+            $verificationScore += 50;
+        }
+
+        $score->verification_score = $verificationScore;
     }
 
     /**
@@ -121,14 +137,20 @@ class CredibilityScoreService
      */
     private function updateSettlementScore(UserCredibilityScore $score): void
     {
-        if ($score->total_transactions === 0) {
-            $score->settlement_score = 0;
-            return;
+        $ratings = UserRating::where('ratee_id', $score->user_id)->published()->get();
+        
+        $disputeFreeRate = 100;
+        if ($score->total_transactions > 0) {
+            $settledCount = $score->total_transactions - $score->total_disputes;
+            $disputeFreeRate = ($settledCount / $score->total_transactions) * 100;
         }
 
-        // Percentage of transactions settled without disputes
-        $settledCount = $score->total_transactions - $score->total_disputes;
-        $score->settlement_score = ($settledCount / $score->total_transactions) * 100;
+        // Incorporate average settlement rating from peers (if available)
+        $avgSettlementRating = $ratings->avg('settlement_rating') ?: 0;
+        $ratingSettlementScore = $avgSettlementRating ? ($avgSettlementRating / 5) * 100 : $disputeFreeRate;
+
+        // Weighted average: 70% dispute-free rate, 30% peer ratings
+        $score->settlement_score = ($disputeFreeRate * 0.7) + ($ratingSettlementScore * 0.3);
     }
 
     /**
@@ -136,10 +158,43 @@ class CredibilityScoreService
      */
     private function updateResponseTimeScore(UserCredibilityScore $score): void
     {
-        // This would be based on average message response time
-        // For now, default to 50 (average)
-        // Can be refined with actual messaging data
-        $score->response_time_score = 50;
+        // Calculate average response time from quotebook
+        // We look at quotes AssignedBy or created_by this user that were accepted
+        $avgResponseMinutes = \Illuminate\Support\Facades\DB::connection('bk_db')
+            ->table('quotebook')
+            ->where(function($query) use ($score) {
+                $query->where('AssignedBy', $score->user_id)
+                      ->orWhere('created_by', $score->user_id);
+            })
+            ->where('IsAccepted', true)
+            ->whereNotNull('dola')
+            ->whereNotNull('created_on')
+            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_on, dola)) as avg_time')
+            ->value('avg_time');
+
+        if ($avgResponseMinutes === null) {
+            // Fallback to peer ratings for response speed
+            $avgPeerResponseRating = UserRating::where('ratee_id', $score->user_id)
+                ->published()
+                ->avg('response_speed_rating');
+            
+            $score->response_time_score = $avgPeerResponseRating ? ($avgPeerResponseRating / 5) * 100 : 50;
+            return;
+        }
+
+        // Convert minutes to a 0-100 score
+        // < 5 mins = 100, 30 mins = 80, 2 hours = 50, 24 hours = 0
+        if ($avgResponseMinutes <= 5) {
+            $score->response_time_score = 100;
+        } elseif ($avgResponseMinutes <= 120) {
+            // Linear scale from 5 to 120 mins (100 to 50 points)
+            $score->response_time_score = 100 - (($avgResponseMinutes - 5) / (120 - 5) * 50);
+        } elseif ($avgResponseMinutes <= 1440) {
+            // Linear scale from 120 to 1440 mins (50 to 0 points)
+            $score->response_time_score = 50 - (($avgResponseMinutes - 120) / (1440 - 120) * 50);
+        } else {
+            $score->response_time_score = 0;
+        }
     }
 
     /**
