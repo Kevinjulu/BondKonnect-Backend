@@ -26,5 +26,7 @@ yarn-error.log
 .codegpt
 
 # Environment files
-# .env patterns removed for Git tracking as requested.
+.env
+.env.backup
+.env.production
 !.env.example
