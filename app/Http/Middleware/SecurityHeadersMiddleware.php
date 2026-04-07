@@ -38,12 +38,16 @@ class SecurityHeadersMiddleware
         }
 
         // Content Security Policy - restrict resource loading
+        // Allow connections to frontend domain for CORS
+        $frontendUrl = config('app.frontend_url', config('app.url'));
+        $backendUrl = config('app.url');
+        
         $csp = "default-src 'self'; ".
                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; ".  // unsafe-inline for Laravel error pages, remove in strict mode
                "style-src 'self' 'unsafe-inline'; ".
                "img-src 'self' data: https:; ".
                "font-src 'self' data:; ".
-               "connect-src 'self' ".config('app.url').'; '.
+               "connect-src 'self' {$backendUrl} {$frontendUrl} https://*.pusher.com wss://*.pusher.com; ".
                "frame-ancestors 'none'; ".
                "base-uri 'self'; ".
                "form-action 'self'";
