@@ -19,9 +19,16 @@ use App\Http\Controllers\V1\Defaults\StandardFunctions;
 use App\Http\Controllers\V1\Defaults\CommunicationManagement;
 use App\Http\Controllers\V1\RoleActions\PermissionManagement;
 use App\Http\Controllers\V1\Notifications\NotificationController;
+use App\Services\OtpService;
 
 class AuthController extends Controller
 {
+    protected $otpService;
+
+    public function __construct()
+    {
+        $this->otpService = new OtpService();
+    }
 
     public function dbDR(Request $request)
     {
@@ -1107,16 +1114,10 @@ class AuthController extends Controller
                 ], 404);
             }
 
-            // check if OTP exists
-            $otp_exists = $this->bk_db->table('portaluserotphistory')
-                ->join('portaluserlogoninfo', 'portaluserlogoninfo.Id', '=', 'portaluserotphistory.User')
-                ->where('portaluserotphistory.OtpExpiry', '>', Carbon::now()->subMinutes(5))
-                ->where('portaluserotphistory.Otp', $otp)
-                ->where('portaluserotphistory.IsActive',  false)
-                ->select('portaluserotphistory.*', 'portaluserlogoninfo.*')
-                ->first();
+            // check if OTP exists using OtpService
+            $isValid = $this->otpService->verify($portalUser->Id, (string)$otp);
 
-            if (!$otp_exists) {
+            if (!$isValid) {
                 // Return error with code 401
                 return response()->json([
                     'success' => false,
@@ -1124,12 +1125,6 @@ class AuthController extends Controller
                     'data' => null,
                 ], 401);
             }
-
-            // update OTP to used
-
-            $this->bk_db->table('portaluserotphistory')
-                ->where('User', $otp_exists->Id)
-                ->update(['IsActive' => true]);
 
             // generate a secure token
             // $token = bin2hex(random_bytes(32));

@@ -28,6 +28,9 @@
         <env name="BK_DB_DRIVER" value="sqlite"/>
         <env name="APP_KEY" value="XG8P/L8p5P4W6hV/vJ8+x4rQ7W8xL8w="/>
         <env name="DB_DATABASE" value=":memory:"/>
+        <env name="BK_DB_DATABASE" value=":memory:"/>
+        <env name="BK_API_DB_DATABASE" value=":memory:"/>
+        <env name="DB_JOURNAL_MODE" value="delete"/>
         <env name="DATABASE_URL" value=""/>
         <env name="PGHOST" value=""/>
         <env name="PGPORT" value=""/>

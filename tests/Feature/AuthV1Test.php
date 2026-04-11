@@ -14,11 +14,16 @@ use Carbon\Carbon;
 
 class AuthV1Test extends TestCase
 {
-    use RefreshDatabase;
+    // use RefreshDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
+        
+        // Ensure all connections are migrated since we use multiple connections in the app
+        $this->artisan('migrate:fresh', ['--database' => 'sqlite']);
+        $this->artisan('migrate:fresh', ['--database' => 'bk_db']);
+        $this->artisan('migrate:fresh', ['--database' => 'bk_api_db']);
 
         // Manually create legacy tables if they don't exist
         if (!Schema::hasTable('cmalist')) {
@@ -202,5 +207,72 @@ class AuthV1Test extends TestCase
         $response->assertStatus(200);
         $response->assertJsonFragment(['success' => true, 'otp_bypassed' => true]);
         $response->assertJsonStructure(['token']);
+    }
+
+    public function test_otp_verification_flow()
+    {
+        $this->withoutExceptionHandling();
+        
+        $email = 'user@example.com';
+        $password = 'password123';
+        
+        $userId = DB::table('portaluserlogoninfo')->insertGetId([
+            'AccountId' => 'USR123',
+            'FirstName' => 'Regular',
+            'Email' => $email,
+            'PhoneNumber' => '0711223344',
+            'IsActive' => true,
+            'created_on' => now()
+        ]);
+
+        DB::table('portaluserpasswordshistory')->insert([
+            'User' => $userId,
+            'Password' => Hash::make($password),
+            'IsActive' => true,
+            'created_on' => now()
+        ]);
+
+        // Seed role for user
+        DB::table('userroles')->insert([
+            'User' => $userId,
+            'Role' => 2, // Individual
+            'created_on' => now()
+        ]);
+
+        // 1. Login (should trigger OTP)
+        Mail::fake();
+        $loginResponse = $this->postJson('/api/V1/auth/user-login', [
+            'email' => $email,
+            'password' => $password
+        ]);
+
+        $loginResponse->assertStatus(200);
+        $loginResponse->assertJsonFragment(['message' => 'OTP sent successfully']);
+
+        // 2. Get the seeded OTP from database
+        $otpRecord = DB::table('portaluserotphistory')->where('User', $userId)->first();
+        $this->assertNotNull($otpRecord);
+        $otp = $otpRecord->Otp;
+
+        // 3. Verify OTP
+        $verifyResponse = $this->postJson('/api/V1/auth/verify-otp', [
+            'email' => $email,
+            'otp' => (int)$otp,
+            'ip_address' => '127.0.0.1'
+        ]);
+
+        if ($verifyResponse->status() !== 200) {
+            dump($verifyResponse->json());
+        }
+
+        $verifyResponse->assertStatus(200);
+        $verifyResponse->assertJsonFragment(['message' => 'OTP verified successfully']);
+        $verifyResponse->assertJsonStructure(['data']);
+
+        // 4. Verify OTP is now marked as used (IsActive = true)
+        $this->assertDatabaseHas('portaluserotphistory', [
+            'Id' => $otpRecord->Id,
+            'IsActive' => true
+        ]);
     }
 }

@@ -16,9 +16,16 @@ use App\Jobs\SendEmailJob;
 use App\Mail\VerifyIntermediaryMail;
 use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\v1\Defaults\StandardFunctions;
+use App\Services\OtpService;
 
 class CommunicationManagement extends Controller
 {
+    protected $otpService;
+
+    public function __construct()
+    {
+        $this->otpService = new OtpService();
+    }
     // ... helper to dispatch jobs
     private function dispatchEmailJob($email, $mailableClass, $data, $cc = [], $bcc = [])
     {
@@ -418,8 +425,6 @@ class CommunicationManagement extends Controller
     public function generate_send_otp($email)
     {
         try {
-            // generate OTP
-
             if (!$email) {
                 return [
                     'success' => false,
@@ -427,8 +432,6 @@ class CommunicationManagement extends Controller
                     'data' => null,
                 ];
             }
-
-            $otp = rand(100000, 999999);
 
             // get user id from email
             $standard = new StandardFunctions();
@@ -442,29 +445,16 @@ class CommunicationManagement extends Controller
                 ];
             }
 
-            // Clear any previous active OTPs for this user
-            // $this->bk_db->table('portaluserotphistory')
-            //     ->where('User', $login_id->Id)
-            //     ->where('IsActive',  false)
-            //     ->update(['IsActive' => true]);
+            // generate OTP using service
+            $otp = $this->otpService->generate($login_id->Id);
 
-            // save OTP to database under UserOtpHistory
-            $this->bk_db->table('portaluserotphistory')->insert([
-                'Otp' => $otp,
-                'User' => $login_id->Id,
-                'created_on' => date('Y-m-d H:i:s'),
-                'OtpExpiry' => date('Y-m-d H:i:s', strtotime('+5 minutes')),
-                'IsActive' => false,
-            ]);
-
-            // Log OTP generation for debugging
-            Log::info('OTP Generated Successfully', [
-                'email' => $email,
-                'user_id' => $login_id->Id,
-                'otp' => $otp,
-                'expires_at' => Carbon::now()->addMinutes(5),
-                'current_time' => Carbon::now()
-            ]);
+            if (!$otp) {
+                return [
+                    'success' => false,
+                    'message' => 'Error generating OTP',
+                    'data' => null,
+                ];
+            }
 
             return [
                 'success' => true,
