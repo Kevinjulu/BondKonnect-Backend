@@ -108,6 +108,18 @@ return new class extends Migration
                 $table->timestamp('created_on')->useCurrent();
             });
         }
+
+        // Table: portaluserotphistory
+        if (!Schema::hasTable('portaluserotphistory')) {
+            Schema::create('portaluserotphistory', function (Blueprint $table) {
+                $table->increments('Id');
+                $table->string('Otp');
+                $table->unsignedBigInteger('User');
+                $table->timestamp('OtpExpiry');
+                $table->boolean('IsActive')->default(false);
+                $table->timestamp('created_on')->useCurrent();
+            });
+        }
     }
 
     /**
@@ -115,6 +127,7 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('portaluserotphistory');
         Schema::dropIfExists('emaillogs');
         Schema::dropIfExists('quotebook');
         Schema::dropIfExists('portaluserpasswordshistory');

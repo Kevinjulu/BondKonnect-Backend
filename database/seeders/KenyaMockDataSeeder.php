@@ -23,6 +23,7 @@ class KenyaMockDataSeeder extends Seeder
         $this->seedBonds();
         $this->seedChartData();
         $this->seedPortfolios();
+        $this->seedOtps();
 
         $this->command->info('Kenya Mock Data Seeder finished.');
     }
@@ -33,12 +34,15 @@ class KenyaMockDataSeeder extends Seeder
 
         // Truncate tables for a clean seed - Child tables first to respect FKs
         DB::table('userroles')->truncate();
+        DB::table('portaluserpasswordshistory')->truncate();
         DB::table('portaluserlogoninfo')->truncate();
         DB::table('users')->truncate();
+        DB::table('portaluserotphistory')->truncate();
 
         $roles = DB::table('roles')->pluck('Id', 'Name')->all();
 
         $users = [
+            ['first' => 'Admin', 'last' => 'User', 'company' => 'BondKonnect', 'role' => 'Broker', 'email' => 'admin@bondkonnect.test', 'password' => 'password123'],
             ['first' => 'John', 'last' => 'Mwangi', 'company' => 'Nairobi Capital', 'role' => 'Broker'],
             ['first' => 'Mary', 'last' => 'Wanjiru', 'company' => 'Kenya Power', 'role' => 'Issuer'],
             ['first' => 'James', 'last' => 'Omondi', 'company' => null, 'role' => 'Individual'],
@@ -48,7 +52,8 @@ class KenyaMockDataSeeder extends Seeder
         ];
 
         foreach ($users as $userData) {
-            $email = strtolower($userData['first'] . '.' . $userData['last'] . '@example.com');
+            $email = isset($userData['email']) ? $userData['email'] : strtolower($userData['first'] . '.' . $userData['last'] . '@example.com');
+            $password = isset($userData['password']) ? $userData['password'] : 'password';
             
             // 1. Create the main user record in the legacy table
             $userId = DB::table('portaluserlogoninfo')->insertGetId([
@@ -65,16 +70,24 @@ class KenyaMockDataSeeder extends Seeder
                 'created_on' => Carbon::now(),
             ], 'Id');
 
-            // 2. Create the corresponding Laravel auth user
+            // 2. Create the password history
+            DB::table('portaluserpasswordshistory')->insert([
+                'User' => $userId,
+                'Password' => Hash::make($password),
+                'IsActive' => true,
+                'created_on' => Carbon::now(),
+            ]);
+
+            // 3. Create the corresponding Laravel auth user
             DB::table('users')->insert([
                 'name' => $userData['first'] . ' ' . $userData['last'],
                 'email' => $email,
-                'password' => Hash::make('password'),
+                'password' => Hash::make($password),
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ]);
 
-            // 3. Assign the role
+            // 4. Assign the primary role
             if (isset($roles[$userData['role']])) {
                 DB::table('userroles')->insert([
                     'User' => $userId,
@@ -82,6 +95,33 @@ class KenyaMockDataSeeder extends Seeder
                     'created_on' => Carbon::now(),
                 ]);
             }
+
+            // 5. Special case: Give Admin role to the admin@bondkonnect.test user
+            if ($email === 'admin@bondkonnect.test' && isset($roles['Admin'])) {
+                DB::table('userroles')->insert([
+                    'User' => $userId,
+                    'Role' => $roles['Admin'],
+                    'created_on' => Carbon::now(),
+                ]);
+            }
+        }
+    }
+
+    private function seedOtps()
+    {
+        $this->command->info('Seeding test OTP for admin...');
+
+        $admin = DB::table('portaluserlogoninfo')->where('Email', 'admin@bondkonnect.test')->first();
+
+        if ($admin) {
+            DB::table('portaluserotphistory')->insert([
+                'Otp' => '123456',
+                'User' => $admin->Id,
+                'OtpExpiry' => Carbon::now()->addYear(),
+                'IsActive' => false, // false means it's active/unused
+                'created_on' => Carbon::now(),
+            ]);
+            $this->command->info('OTP 123456 seeded for admin@bondkonnect.test');
         }
     }
 
