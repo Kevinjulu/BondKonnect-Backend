@@ -13,14 +13,43 @@ return [
     | authentication cookies. Typically, these should include your local
     | and production domains which access your API via a frontend SPA.
     |
+    | Railway Production Domains:
+    |   - laravel-backend-api.up.railway.app  (this API — needed so Sanctum
+    |     recognises same-origin requests routed through Railway's proxy)
+    |   - bondkonnect.up.railway.app          (the Next.js / React frontend)
+    |
+    | The SANCTUM_STATEFUL_DOMAINS env var overrides this entire list, so set
+    | it in Railway's variable panel when you need to add extra domains without
+    | redeploying.
+    |
     */
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s%s',
-        'localhost,localhost:3000,localhost:4000,localhost:5173,127.0.0.1,127.0.0.1:3000,127.0.0.1:4000,127.0.0.1:5173,::1',
+    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', implode(',', [
+        // ── Local development ────────────────────────────────────────────────
+        'localhost',
+        'localhost:3000',
+        'localhost:4000',
+        'localhost:5173',
+        '127.0.0.1',
+        '127.0.0.1:3000',
+        '127.0.0.1:4000',
+        '127.0.0.1:5173',
+        '::1',
+
+        // ── Railway production ───────────────────────────────────────────────
+        // Backend API — ensures Sanctum treats its own Railway domain as
+        // stateful so session cookies are issued on the CSRF handshake.
+        'laravel-backend-api.up.railway.app',
+
+        // Frontend SPA — the origin that sends authenticated requests.
+        'bondkonnect.up.railway.app',
+
+        // ── Dynamic helpers (APP_URL and FRONTEND_URL) ───────────────────────
+        // currentApplicationUrlWithPort() reads APP_URL; the FRONTEND_URL
+        // branch handles any custom domain set via env without redeploying.
         Sanctum::currentApplicationUrlWithPort(),
-        env('FRONTEND_URL') ? ','.parse_url(env('FRONTEND_URL'), PHP_URL_HOST) : ''
-    ))),
+        env('FRONTEND_URL') ? parse_url(env('FRONTEND_URL'), PHP_URL_HOST) : null,
+    ]))),
 
     /*
     |--------------------------------------------------------------------------

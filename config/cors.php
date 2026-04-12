@@ -21,12 +21,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Professional Production Approach
+    | Allowed Origins
     |--------------------------------------------------------------------------
-    | We use CORS_ALLOWED_ORIGINS to dynamically control access.
-    | No domains are hardcoded here to ensure security and flexibility.
+    | CORS_ALLOWED_ORIGINS (or the legacy CORS_ALLOWED_ORIGIN alias) controls
+    | which origins may send credentialed cross-origin requests to this API.
+    |
+    | The default list covers local development ports and both Railway
+    | production domains:
+    |   - https://bondkonnect.up.railway.app        (frontend SPA)
+    |   - https://laravel-backend-api.up.railway.app (this API, for same-origin
+    |     tool calls and Railway's internal health-check proxy)
+    |
+    | Override via the CORS_ALLOWED_ORIGINS env var in Railway's variable panel
+    | when adding custom domains without redeploying.
     */
-    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', env('CORS_ALLOWED_ORIGIN', 'http://localhost:3000,http://localhost:5173,http://localhost:4000,https://bondkonnect.up.railway.app'))),
+    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', env('CORS_ALLOWED_ORIGIN', implode(',', [
+        // ── Local development ────────────────────────────────────────────────
+        'http://localhost:3000',
+        'http://localhost:4000',
+        'http://localhost:5173',
+
+        // ── Railway production ───────────────────────────────────────────────
+        'https://bondkonnect.up.railway.app',
+        'https://laravel-backend-api.up.railway.app',
+    ])))),
 
     'allowed_origins_patterns' => [],
 
